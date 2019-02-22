@@ -40,6 +40,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activesupport
   bundler (~> 1.17)
   nxt_init
   nxt_pipeline!
