@@ -1,8 +1,6 @@
 # NxtPipeline
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/nxt_pipeline`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+nxt_pipeline provides a DSL to structure the processing of an object (oil) through multiple steps by defining pipelines (which process the object) and segments (reusable steps used by the pipeline).
 
 ## Installation
 
@@ -22,7 +20,35 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Look how easy it is.
+
+```ruby
+class UppercaseSegment < NxtPipeline::Segment
+  def call
+    words.map(&:uppercase)
+  end
+end
+
+class SortSegment < NxtPipeline::Segment
+  def call
+    words.sort
+  end
+end
+
+class MyPipeline < NxtPipeline::Pipeline
+  pipe_attr :words
+  
+  segment UppercaseSegment
+  segment SortSegment
+end
+
+MyPipeline.new(words: %w[Ruby is awesome]).call
+# => ["AWESOME", "IS", "RUBY"]
+```
+
+Basically you create a pipeline class that inherits from `NxtPipeline::Pipeline` and name the attribute you want to pass through the pipeline's segments with the `pipe_attr` class method.
+
+You can add segments to the pipeline by using the `segment` class method in the pipeline class body. The segment classes inherit from `NxtPipeline::Segment` and have to implement a method `#pipe_through`. Inside of it, you can access the pipeline attr by its reader method (see example above).
 
 ## Development
 
@@ -32,7 +58,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/nxt_pipeline.
+Bug reports and pull requests are welcome on GitHub at https://github.com/nxt-insurance/nxt_pipeline.
 
 ## License
 
