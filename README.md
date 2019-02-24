@@ -24,13 +24,13 @@ Look how easy it is.
 
 ```ruby
 class UppercaseSegment < NxtPipeline::Segment
-  def call
+  def pipe_through
     words.map(&:uppercase)
   end
 end
 
 class SortSegment < NxtPipeline::Segment
-  def call
+  def pipe_through
     words.sort
   end
 end
