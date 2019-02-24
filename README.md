@@ -50,6 +50,30 @@ Basically you create a pipeline class that inherits from `NxtPipeline::Pipeline`
 
 You can add segments to the pipeline by using the `segment` class method in the pipeline class body. The segment classes inherit from `NxtPipeline::Segment` and have to implement a method `#pipe_through`. Inside of it, you can access the pipeline attr by its reader method (see example above).
 
+You can also define behavior to execute when one of the pipelines raises an error.
+
+```ruby
+class MyPipeline < NxtPipeline::Pipeline
+  pipe_attr :words
+  
+  segment UppercaseSegment
+  segment SortSegment
+  
+  rescue_from StandardError do |error, segment_failed_upon|
+    puts "Failed in segment #{segment_failed_upon} with #{error.class}: #{error.message}"
+  end
+end
+
+pipeline = MyPipeline.new(words: %w[Ruby is awesome])
+pipeline.call
+# => 'Failed in segment uppercase_segment with StandardError: Lorem ipsum'
+
+pipeline.burst?
+# => true
+pipeline.burst_segment
+# => 'uppercase_segment'
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
