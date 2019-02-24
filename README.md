@@ -50,7 +50,7 @@ Basically you create a pipeline class that inherits from `NxtPipeline::Pipeline`
 
 You can add segments to the pipeline by using the `segment` class method in the pipeline class body. The segment classes inherit from `NxtPipeline::Segment` and have to implement a method `#pipe_through`. Inside of it, you can access the pipeline attr by its reader method (see example above).
 
-You can also define behavior to execute when one of the pipelines raises an error.
+You can also define behavior to execute when one of the pipelines raises an error by using `rescue_segment_burst`. The code given to it through a block is executed and given the original error as well as a string naming the segment where the error occured. Afterwards the error is reraised.
 
 ```ruby
 class MyPipeline < NxtPipeline::Pipeline
@@ -59,7 +59,7 @@ class MyPipeline < NxtPipeline::Pipeline
   segment UppercaseSegment
   segment SortSegment
   
-  rescue_from StandardError do |error, segment_failed_upon|
+  rescue_segment_burst StandardError do |error, segment_failed_upon|
     puts "Failed in segment #{segment_failed_upon} with #{error.class}: #{error.message}"
   end
 end
