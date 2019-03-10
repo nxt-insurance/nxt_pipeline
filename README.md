@@ -80,6 +80,8 @@ class MyPipeline < NxtPipeline::Pipeline
 end
 ```
 
+The callback methods are syntactic sugar for [ActiveSupport Callbacks](https://api.rubyonrails.org/classes/ActiveSupport/Callbacks.html), so the same rules apply regarding order or execution.
+
 ### Error handling
 
 When everything works smoothly the pipeline calls one step after another, passing through the pipeline attribute and returning it as it gets it from the last step. However, you might want to define behavior the pipeline should perform in case one of the steps raises an error.
