@@ -30,7 +30,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'pipes the pipe attr through the steps and returns them transformed' do
-      expect(subject.new(words: pipe_attr).call).to eq %w[AWESOME IS RUBY]
+      expect(subject.new(words: pipe_attr).run).to eq %w[AWESOME IS RUBY]
     end
   end
 
@@ -77,7 +77,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'raises an error and remembers which step error' do
-        expect { subject.new(words: pipe_attr).call }.to raise_error(
+        expect { subject.new(words: pipe_attr).run }.to raise_error(
           TestError,
           'This step has failed!'
         )
@@ -85,7 +85,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
       it 'remembers the step that failed' do
         pipeline = subject.new(words: pipe_attr)
-        pipeline.call rescue TestError
+        pipeline.run rescue TestError
 
         expect(pipeline.failed_step).to eq 'failing_step'
         expect(pipeline.failed?).to be_truthy
@@ -110,7 +110,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'should call the block defined for step error rescues' do
-        expect { subject.new(words: pipe_attr).call }.to raise_error(
+        expect { subject.new(words: pipe_attr).run }.to raise_error(
           TestError,
           'This step has failed!'
         ).and output("Failed in step failing_step with TestError: This step has failed!\n").to_stdout
@@ -157,7 +157,7 @@ RSpec.describe NxtPipeline::Pipeline do
     
     it 'should execute the callbacks in the correct order' do
       pipeline = subject.new(words: pipe_attr)
-      pipeline.call
+      pipeline.run
       
       expect(pipeline.history).to eq [
         'Pipeline ran before_each_step callback',

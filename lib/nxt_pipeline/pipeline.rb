@@ -9,7 +9,7 @@ module NxtPipeline
       extract_pipe_attr_from_init_params(*attrs)
     end
 
-    def call
+    def run
       self.class.steps.reduce(pipe_attr) do |transformed_pipe_attr, step|
         run_callbacks :each_step_pipe_through do
           step[self.class.pipe_attr_name].new(self.class.pipe_attr_name => transformed_pipe_attr).pipe_through
