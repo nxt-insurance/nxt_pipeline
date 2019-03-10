@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/nxt-insurance/nxt_pipeline.svg?style=svg)](https://circleci.com/gh/nxt-insurance/nxt_pipeline)
+
 # NxtPipeline
 
 nxt_pipeline provides a DSL to structure the processing of an object (oil) through multiple steps by defining pipelines (which process the object) and segments (reusable steps used by the pipeline).
