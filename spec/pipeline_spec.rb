@@ -1,7 +1,7 @@
 RSpec.describe NxtPipeline::Pipeline do
+  let(:pipe_attr) { %w[Ruby is awesome] }
+  
   context 'with reliable segments' do
-    let(:pipe_attr) { %w[Ruby is awesome] }
-
     let(:uppercase_segment) do
       Class.new(NxtPipeline::Segment) do
         def pipe_through
@@ -36,8 +36,6 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'with failing segments' do
     class TestError < StandardError; end
-
-    let(:pipe_attr) { %w[Ruby is awesome] }
 
     let(:uppercase_segment) do
       Class.new(NxtPipeline::Segment) do
@@ -117,6 +115,56 @@ RSpec.describe NxtPipeline::Pipeline do
           'This segment has burst!'
         ).and output("Failed in segment failing_segment with TestError: This segment has burst!\n").to_stdout
       end
+    end
+  end
+  
+  context 'callbacks' do
+    let(:empty_segment) do
+      Class.new(NxtPipeline::Segment) do
+        def pipe_through
+          words
+        end
+      end
+    end
+        
+    subject do
+      klass = Class.new(NxtPipeline::Pipeline) do
+        pipe_attr :words
+        
+        def history
+          @history ||= []
+        end
+      end
+
+      klass.mount_segment empty_segment
+      
+      klass.before_each_segment do |pipeline|
+        pipeline.history << 'Pipeline ran before_each_segment callback'
+      end
+      
+      klass.after_each_segment do |pipeline|
+        pipeline.history << 'Pipeline ran after_each_segment callback'
+      end
+      
+      klass.around_each_segment do |pipeline, block|
+        pipeline.history << 'Pipeline ran around_each_segment callback start'
+        block.call
+        pipeline.history << 'Pipeline ran around_each_segment callback end'
+      end
+
+      klass
+    end
+    
+    it 'should execute the callbacks in the correct order' do
+      pipeline = subject.new(words: pipe_attr)
+      pipeline.call
+      
+      expect(pipeline.history).to eq [
+        'Pipeline ran before_each_segment callback',
+        'Pipeline ran around_each_segment callback start',
+        'Pipeline ran around_each_segment callback end',
+        'Pipeline ran after_each_segment callback',
+      ]
     end
   end
 end
