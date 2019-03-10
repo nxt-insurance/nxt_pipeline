@@ -1,10 +1,27 @@
 ## Unreleased
 
-* Added CHANGELOG file.
+## nxt_pipeline 0.2.0 (March 10, 2019)
+
+* Added pipeline callback support.
 
   *Nils Sommer*
+
+* Renamed class and method names
+
+  Renamed `NxtPipeline::Segment` to `NxtPipeline::Step`.
+  Renamed `NxtPipeline::Pipeline::segment` to `NxtPipeline::Pipeline::step`.
+  Renamed `NxtPipeline::Pipeline#call` to `NxtPipeline::Pipeline#run`.
+  Renamed `NxtPipeline::Pipeline#burst?` to `NxtPipeline::Pipeline#failed?`.
+  Renamed `NxtPipeline::Pipeline#burst_segment` to `NxtPipeline::Pipeline#failed_step`.
+  Renamed `NxtPipeline::Pipeline::rescue_segment_burst` to `NxtPipeline::Pipeline::rescue_errors`.
   
+  *Nils Sommer*
+
 * Setup [guard](https://github.com/guard/guard) to run specs upon file changes during development.
+
+  *Nils Sommer*
+
+* Added CHANGELOG file.
 
   *Nils Sommer*
 
