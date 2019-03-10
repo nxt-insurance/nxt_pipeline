@@ -1,6 +1,6 @@
-RSpec.describe NxtPipeline::Segment do
+RSpec.describe NxtPipeline::Step do
   subject do
-    Class.new(NxtPipeline::Segment[:param_1, :param_2]) do
+    Class.new(NxtPipeline::Step[:param_1, :param_2]) do
       def pipe_through
         { param_1: param_1, param_2: param_2 }
       end
@@ -8,7 +8,7 @@ RSpec.describe NxtPipeline::Segment do
   end
 
   let(:segment_without_pipe_through) do
-    Class.new(NxtPipeline::Segment[:param])
+    Class.new(NxtPipeline::Step[:param])
   end
 
   it 'should enforce the implementation of #pipe_through' do
@@ -16,7 +16,7 @@ RSpec.describe NxtPipeline::Segment do
   end
 
   it 'should enforce passing arguments to the constructor' do
-    expect { Class.new(NxtPipeline::Segment[]) }.to raise_error(
+    expect { Class.new(NxtPipeline::Step[]) }.to raise_error(
       ArgumentError,
       'Arguments missing'
     )

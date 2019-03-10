@@ -2,7 +2,7 @@
 
 # NxtPipeline
 
-nxt_pipeline provides a DSL to structure the processing of an object (oil) through multiple steps by defining pipelines (which process the object) and segments (reusable steps used by the pipeline).
+nxt_pipeline provides a DSL to define pipeline classes which take an object and pass it through multiple steps which can read or modify the object.
 
 ## Installation
 
@@ -22,58 +22,90 @@ Or install it yourself as:
 
 ## Usage
 
-Look how easy it is.
+Define a pipeline by defining class inheriting from `NxtPipeline::Pipeline` as shown above. The following examples shows a pipeline which takes an array of strings and passes it through multiple steps.
 
 ```ruby
-class UppercaseSegment < NxtPipeline::Segment
+class MyPipeline < NxtPipeline::Pipeline
+  pipe_attr :words
+  
+  step UppercaseSegment
+  step SortSegment
+end
+```
+
+The steps are classes themselves which inherit from `NxtPipeline::Step` and have to implement a `#pipe_through` method.
+
+```ruby
+class UppercaseSegment < NxtPipeline::Step
   def pipe_through
     words.map(&:uppercase)
   end
 end
 
-class SortSegment < NxtPipeline::Segment
+class SortSegment < NxtPipeline::Step
   def pipe_through
     words.sort
   end
 end
+```
 
-class MyPipeline < NxtPipeline::Pipeline
-  pipe_attr :words
-  
-  segment UppercaseSegment
-  segment SortSegment
-end
+You can access the pipeline attribute defined by `pipe_attr` in the pipeline class by a reader method which is automatically defined by nxt_pipeline. Don't forget to return the pipeline attribute so that subsequent steps in the pipeline can take it up!
 
-MyPipeline.new(words: %w[Ruby is awesome]).call
+Here's how our little example pipeline behaves like in action:
+
+```
+MyPipeline.new(words: %w[Ruby is awesome]).run
 # => ["AWESOME", "IS", "RUBY"]
 ```
 
-Basically you create a pipeline class that inherits from `NxtPipeline::Pipeline` and name the attribute you want to pass through the pipeline's segments with the `pipe_attr` class method.
+### Callbacks
 
-You can add segments to the pipeline by using the `segment` class method in the pipeline class body. The segment classes inherit from `NxtPipeline::Segment` and have to implement a method `#pipe_through`. Inside of it, you can access the pipeline attr by its reader method (see example above).
-
-You can also define behavior to execute when one of the pipelines raises an error by using `rescue_segment_burst`. The code given to it through a block is executed and given the original error as well as a string naming the segment where the error occured. Afterwards the error is reraised.
+You can define callbacks that are automatically invoked for each step in the pipeline.
 
 ```ruby
 class MyPipeline < NxtPipeline::Pipeline
-  pipe_attr :words
+  before_each_step do
+    # Code run before each step.
+  end
   
-  segment UppercaseSegment
-  segment SortSegment
+  after_each_step do
+    # Code run after each step
+  end
   
-  rescue_segment_burst StandardError do |error, segment_failed_upon|
-    puts "Failed in segment #{segment_failed_upon} with #{error.class}: #{error.message}"
+  around_each_step do |pipeline, segment|
+    # Code run before each step
+	segment.call
+	# Code run after each step
   end
 end
+```
 
-pipeline = MyPipeline.new(words: %w[Ruby is awesome])
-pipeline.call
-# => 'Failed in segment uppercase_segment with StandardError: Lorem ipsum'
+### Error handling
 
-pipeline.burst?
-# => true
-pipeline.burst_segment
-# => 'uppercase_segment'
+When everything works smoothly the pipeline calls one step after another, passing through the pipeline attribute and returning it as it gets it from the last step. However, you might want to define behavior the pipeline should perform in case one of the steps raises an error.
+
+```ruby
+class MyPipeline < NxtPipeline::Pipeline
+  rescue_errors StandardError do |error, failed_step|
+    puts "Step #{failed_step} failed with #{error.class}: #{error.message}"
+  end
+end
+```
+
+Keep in mind though that `rescue_errors` will reraise the error it caught. When you rescue this error in your application, the pipeline remembers if and how it failed.
+
+```ruby
+pipeline = MyPipeline.new(...)
+
+begin
+  pipeline.run
+rescue => e
+  pipeline.failed?
+  #=> true
+  
+  pipeline.failed_step
+  #=> :underscored_class_name_of_failed_step
+end
 ```
 
 ## Development

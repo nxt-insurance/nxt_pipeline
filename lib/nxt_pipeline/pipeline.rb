@@ -1,26 +1,26 @@
 module NxtPipeline
   class Pipeline
     include ActiveSupport::Callbacks
-    define_callbacks :each_segment_pipe_through
+    define_callbacks :each_step_pipe_through
     
-    attr_reader :burst_segment
+    attr_reader :failed_step
 
     def initialize(*attrs)
       extract_pipe_attr_from_init_params(*attrs)
     end
 
     def call
-      self.class.segments.reduce(pipe_attr) do |transformed_pipe_attr, segment|
-        run_callbacks :each_segment_pipe_through do
-          segment[self.class.pipe_attr_name].new(self.class.pipe_attr_name => transformed_pipe_attr).pipe_through
+      self.class.steps.reduce(pipe_attr) do |transformed_pipe_attr, step|
+        run_callbacks :each_step_pipe_through do
+          step[self.class.pipe_attr_name].new(self.class.pipe_attr_name => transformed_pipe_attr).pipe_through
         rescue => error
-          handle_segment_burst(error, segment)
+          handle_segment_burst(error, step)
         end
       end
     end
 
-    def burst?
-      burst_segment.present?
+    def failed?
+      failed_step.present?
     end
 
     class << self
@@ -28,36 +28,36 @@ module NxtPipeline
         @pipe_attr_name = name
       end
 
-      def mount_segment(name)
-        self.segments << name
+      def step(name)
+        self.steps << name
       end
 
-      def rescue_segment_burst(*errors, &block)
-        @rescueable_segment_bursts = errors
+      def rescue_errors(*errors, &block)
+        @rescueable_errors = errors
         self.rescueable_block = block
       end
       
-      def before_each_segment(*filters, &block)
-        set_callback :each_segment_pipe_through, :before, *filters, &block
+      def before_each_step(*filters, &block)
+        set_callback :each_step_pipe_through, :before, *filters, &block
       end
       
-      def after_each_segment(*filters, &block)
-        set_callback :each_segment_pipe_through, :after, *filters, &block
+      def after_each_step(*filters, &block)
+        set_callback :each_step_pipe_through, :after, *filters, &block
       end
       
-      def around_each_segment(*filters, &block)
-        set_callback :each_segment_pipe_through, :around, *filters, &block
+      def around_each_step(*filters, &block)
+        set_callback :each_step_pipe_through, :around, *filters, &block
       end
       
       attr_reader :pipe_attr_name
       attr_accessor :rescueable_block
       
-      def segments
-        @segments ||= []
+      def steps
+        @steps ||= []
       end
       
-      def rescueable_segment_bursts
-        @rescueable_segment_bursts ||= []
+      def rescueable_errors
+        @rescueable_errors ||= []
       end
     end
 
@@ -70,10 +70,10 @@ module NxtPipeline
       @pipe_attr = attrs.first.fetch(self.class.pipe_attr_name)
     end
 
-    def handle_segment_burst(error, segment)
-      @burst_segment = segment.name.split('::').last.underscore
+    def handle_segment_burst(error, step)
+      @failed_step = step.name.split('::').last.underscore
 
-      self.class.rescueable_block.call(error, burst_segment) if error.class.in?(self.class.rescueable_segment_bursts)
+      self.class.rescueable_block.call(error, failed_step) if error.class.in?(self.class.rescueable_errors)
 
       raise
     end
