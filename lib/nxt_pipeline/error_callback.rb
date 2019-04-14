@@ -1,5 +1,5 @@
 module NxtPipeline
-  class ErrorCallback < Hash
+  class ErrorCallback
     def initialize(errors, block)
       @errors = errors
       @block = block
