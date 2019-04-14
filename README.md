@@ -22,93 +22,114 @@ Or install it yourself as:
 
 ## Usage
 
-Define a pipeline by defining class inheriting from `NxtPipeline::Pipeline` as shown above. The following examples shows a pipeline which takes an array of strings and passes it through multiple steps.
+### Constructors
+
+First you probably want to configure a pipeline so that it can execute your steps. 
+Therefore you want to define constructors for your steps. Constructors take a name 
+as the first argument and step options as the second. All step options are being exposed
+by the step yielded to the constructor. 
 
 ```ruby
-class MyPipeline < NxtPipeline::Pipeline
-  pipe_attr :words
-  
-  step UppercaseSegment
-  step SortSegment
-end
-```
-
-The steps are classes themselves which inherit from `NxtPipeline::Step` and have to implement a `#pipe_through` method.
-
-```ruby
-class UppercaseSegment < NxtPipeline::Step
-  def pipe_through
-    words.map(&:uppercase)
-  end
-end
-
-class SortSegment < NxtPipeline::Step
-  def pipe_through
-    words.sort
-  end
-end
-```
-
-You can access the pipeline attribute defined by `pipe_attr` in the pipeline class by a reader method which is automatically defined by nxt_pipeline. Don't forget to return the pipeline attribute so that subsequent steps in the pipeline can take it up!
-
-Here's how our little example pipeline behaves like in action:
-
-```
-MyPipeline.new(words: %w[Ruby is awesome]).run
-# => ["AWESOME", "IS", "RUBY"]
-```
-
-### Callbacks
-
-You can define callbacks that are automatically invoked for each step in the pipeline.
-
-```ruby
-class MyPipeline < NxtPipeline::Pipeline
-  before_each_step do
-    # Code run before each step.
+pipeline = NxtPipeline::Pipeline.new do |p|
+  # Add a named constructor that will be used to execute your steps later
+  # All options that you pass in your step will be available through accessors in your constructor 
+  p.constructor(:service, default: true) do |step, arg|
+    step.service_class.new(optiopns: arg).call
   end
   
-  after_each_step do
-    # Code run after each step
+  p.constructor(:job) do |step, arg|
+    step.job_class.perform_later(*arg) && arg
   end
-  
-  around_each_step do |pipeline, segment|
-    # Code run before each step
-	segment.call
-	# Code run after each step
-  end
+end
+
+# Once a pipeline was created you can still configure it 
+pipeline.constructor(:call) do |step, arg|
+  step.caller.new(arg).call
+end
+
+# same with block syntax 
+# You can use this to split up execution from configuration  
+pipeline.configure do |p|
+ p.constructor(:call) do |step, arg|
+   step.caller.new(arg).call
+ end
 end
 ```
 
-The callback methods are syntactic sugar for [ActiveSupport Callbacks](https://api.rubyonrails.org/classes/ActiveSupport/Callbacks.html), so the same rules apply regarding order or execution.
+### Defining steps 
 
-### Error handling
-
-When everything works smoothly the pipeline calls one step after another, passing through the pipeline attribute and returning it as it gets it from the last step. However, you might want to define behavior the pipeline should perform in case one of the steps raises an error.
+Once your pipeline knows how to execute your steps you can add those.
 
 ```ruby
-class MyPipeline < NxtPipeline::Pipeline
-  rescue_errors StandardError do |error, failed_step|
-    puts "Step #{failed_step} failed with #{error.class}: #{error.message}"
-  end
+pipeline.step :service, service_class: MyServiceClass, to_s: 'First step'
+pipeline.step service_class: MyOtherServiceClass, to_s: 'Second step' 
+# ^ Since service is the default step you don't have to specify it the step type each time
+pipeline.step :job, job_class: MyJobClass # to_s is optional
+pipeline.step :job, job_class: MyOtherJobClass
+
+pipeline.step :step_name_for_better_log do |_, arg|
+  # ...
+end
+
+pipeline.step to_s: 'This is the same as above' do |step, arg|
+  # ... step.to_s => 'This is the same as above'
 end
 ```
 
-Keep in mind though that `rescue_errors` will reraise the error it caught. When you rescue this error in your application, the pipeline remembers if and how it failed.
+You can also define inline steps, meaning the block will be executed
+
+### Execution
+
+You can then execute the steps with: 
 
 ```ruby
-pipeline = MyPipeline.new(...)
+pipeline.execute('initial argument')
 
-begin
-  pipeline.run
-rescue => e
-  pipeline.failed?
-  #=> true
-  
-  pipeline.failed_step
-  #=> :underscored_class_name_of_failed_step
+# Or run the steps directly using block syntax
+
+pipeline.execute do |p|
+  p.step :service, service_class: MyServiceClass, to_s: 'First step'
+  p.step :service, service_class: MyOtherServiceClass, to_s: 'Second step'
+  p.step :job, job_class: MyJobClass # to_s is optional
+  p.step :job, job_class: MyOtherJobClass
 end
+
 ```
+
+You can also directly execute a pipeline with:
+
+```ruby
+NxtPipeline::Pipeline.execute('initial argument') do |p|
+  p.step do |_, arg|
+    arg.upcase
+  end
+end
+``` 
+
+### Error callbacks
+
+Apart from defining constructors and steps you can also define error callbacks.
+
+```ruby
+NxtPipeline::Pipeline.new do |p|
+  p.step do |_, arg|
+    arg.upcase
+  end
+  
+  p.on_error MyCustomError do |step, arg, error|
+    # First matching error callback will be executed!
+  end
+  
+  p.on_errors ArgumentError, KeyError do |step, arg, error|
+    # First matching error callback will be executed!
+  end
+  
+  p.on_errors do |step, arg, error|
+    # This will match all errors inheriting from StandardError
+  end
+end
+``` 
+
 
 ## Development
 
