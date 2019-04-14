@@ -80,6 +80,7 @@ DEPENDENCIES
   bundler (~> 1.17)
   guard-rspec
   nxt_pipeline!
+  pry
   rake (~> 10.0)
   rspec (~> 3.0)
   rspec_junit_formatter
