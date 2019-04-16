@@ -34,7 +34,7 @@ pipeline = NxtPipeline::Pipeline.new do |p|
   # Add a named constructor that will be used to execute your steps later
   # All options that you pass in your step will be available through accessors in your constructor 
   p.constructor(:service, default: true) do |step, arg|
-    step.service_class.new(optiopns: arg).call
+    step.service_class.new(options: arg).call
   end
   
   p.constructor(:job) do |step, arg|
