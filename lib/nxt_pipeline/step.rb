@@ -22,7 +22,7 @@ module NxtPipeline
     attr_reader :opts
 
     def define_attr_readers(opts)
-      opts.each do |k,v|
+      opts.each do |key, value|
         define_singleton_method k.to_s do
           v
         end
