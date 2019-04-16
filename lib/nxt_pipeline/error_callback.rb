@@ -11,7 +11,7 @@ module NxtPipeline
       (error.class.ancestors & errors).any?
     end
 
-    def call(step, arg, error)
+    def call(step, arg, error, &block)
       block.call(step, arg, error)
     end
   end
