@@ -1,18 +1,18 @@
 module NxtPipeline
   class ErrorCallback
-    def initialize(errors, block)
+    def initialize(errors, callback)
       @errors = errors
-      @block = block
+      @callback = callback
     end
 
-    attr_accessor :errors, :block
+    attr_accessor :errors, :callback
 
     def applies_to_error?(error)
       (error.class.ancestors & errors).any?
     end
 
-    def call(step, arg, error, &block)
-      block.call(step, arg, error)
+    def call(step, arg, error)
+      callback.call(step, arg, error)
     end
   end
 end

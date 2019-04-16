@@ -29,16 +29,16 @@ module NxtPipeline
 
     def step(type = nil, **opts, &block)
       constructor = if block_given?
-                   # make first argument the to_s of step if given
-                   opts.merge!(to_s: type) if type && !opts.key?(:to_s)
-                   block
-                 else
-                   if type
-                     registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
-                   else
-                     default_constructor || (raise StandardError, 'No default step registered')
-                   end
-                 end
+        # make first argument the to_s of step if given
+        opts.merge!(to_s: type) if type && !opts.key?(:to_s)
+        block
+      else
+        if type
+          registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+        else
+          default_constructor || (raise StandardError, 'No default step registered')
+        end
+      end
 
       steps << Step.new(constructor, **opts)
     end
