@@ -1,170 +1,340 @@
-RSpec.describe NxtPipeline::Pipeline do
-  let(:pipe_attr) { %w[Ruby is awesome] }
-  
-  context 'with reliable segments' do
-    let(:uppercase_step) do
-      Class.new(NxtPipeline::Step) do
-        def pipe_through
-          words.map(&:upcase)
+RSpec.describe NxtPipeline do
+  class StepOne
+    def initialize(opts)
+      @opts = opts
+    end
+
+    def call
+      @opts.upcase
+    end
+  end
+
+  class StepSkipped
+    def initialize(opts)
+      @opts = opts
+    end
+
+    def call
+      nil
+    end
+  end
+
+  class StepWithArgumentError
+    def initialize(opts)
+      @opts = opts
+    end
+
+    def call
+      raise ArgumentError, 'This is not a fish'
+    end
+  end
+
+  CustomError = Class.new(ArgumentError)
+  OtherCustomError = Class.new(CustomError)
+
+  context 'when there are no errors' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:service) do |step, arg|
+          step.service_class.new(arg).call
+        end
+
+        pipeline.step :service,
+                      service_class: StepOne
+
+        pipeline.step :service,
+                      service_class: StepSkipped
+      end
+    end
+
+    it 'executes the steps' do
+      expect(subject.execute('hanna')).to eq('HANNA')
+    end
+  end
+
+  context 'when registering the same step multiple times' do
+    it 'raises an error' do
+      expect {
+        NxtPipeline::Pipeline.new do |pipeline|
+          pipeline.constructor(:service) do |step, arg|
+            step.service_class.new(arg).call
+          end
+
+          pipeline.constructor(:service) do |step, arg|
+            step.service_class.new(arg).call
+          end
+        end
+      }.to raise_error(StandardError, 'Already registered step :service')
+    end
+  end
+
+  context 'when there is an error' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:service) do |step, arg|
+          step.service_class.new(arg).call
+        end
+
+        pipeline.step :service,
+                      service_class: StepOne,
+                      to_s: 'StepOne'
+
+        pipeline.step :service,
+                      service_class: StepSkipped,
+                      to_s: 'StepSkipped'
+
+        pipeline.step :service,
+                      service_class: StepWithArgumentError,
+                      to_s: 'StepWithArgumentError'
+
+        pipeline.on_error ArgumentError do |step, arg, error|
+          "Step #{step} was called with #{arg} and failed with #{error.class}"
+        end
+
+        pipeline.on_error do |step, arg, error|
+          raise error
         end
       end
     end
 
-    let(:sort_step) do
-      Class.new(NxtPipeline::Step) do
-        def pipe_through
-          words.sort
+    it 'executes the callback' do
+      expect(subject.execute('hanna')).to eq('Step StepWithArgumentError was called with HANNA and failed with ArgumentError')
+    end
+
+    it 'logs the steps' do
+      subject.execute('hanna')
+
+      expect(subject.log).to eq(
+                                 "StepOne" => { status: :success },
+                                 "StepSkipped"=> { status: :skipped },
+                                 "StepWithArgumentError" => { status: :failed, reason: "ArgumentError: This is not a fish" }
+                             )
+    end
+  end
+
+  context 'error callbacks' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:error_test) do |step, arg|
+          step.raisor.call(arg)
         end
+
+        pipeline.step :error_test, raisor: -> (error) { raise error }
+
+        pipeline.on_error OtherCustomError do |step, arg, error|
+          'other_custom_error callback fired'
+        end
+
+        pipeline.on_error CustomError do |step, arg, error|
+          'custom_error callback fired'
+        end
+
+        pipeline.on_error do |step, arg, error|
+          raise error
+        end
+      end
+    end
+
+    it 'executes the first matching callback' do
+      expect(subject.execute(OtherCustomError)).to eq('other_custom_error callback fired')
+      expect(subject.execute(CustomError)).to eq('custom_error callback fired')
+      expect { subject.execute(ArgumentError) }.to raise_error(ArgumentError)
+    end
+
+    context 'when the more common handler was registered before the more specific handler' do
+      subject do
+        NxtPipeline::Pipeline.new do |pipeline|
+          pipeline.constructor(:error_test) do |step, arg|
+            step.raisor.call(arg)
+          end
+
+          pipeline.step :error_test, raisor: -> (error) { raise error }
+
+          pipeline.on_error CustomError do |*args|
+            'custom_error callback fired'
+          end
+
+          pipeline.on_error OtherCustomError do |*args|
+            'other_custom_error callback fired'
+          end
+
+          pipeline.on_error do |step, arg, error|
+            raise error
+          end
+        end
+      end
+
+      it 'executes the first matching callback' do
+        expect(subject.execute(OtherCustomError)).to eq('custom_error callback fired')
+        expect(subject.execute(CustomError)).to eq('custom_error callback fired')
+        expect { subject.execute(ArgumentError) }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'when one handler was registered for multiple errors' do
+      subject do
+        NxtPipeline::Pipeline.new do |pipeline|
+          pipeline.constructor(:error_test) do |step, arg|
+            step.raisor.call(arg)
+          end
+
+          pipeline.step :error_test, raisor: -> (error) { raise error }
+
+          pipeline.on_errors CustomError, OtherCustomError do |step, arg, error|
+            'common callback fired'
+          end
+
+          pipeline.on_error do |step, arg, error|
+            raise error
+          end
+        end
+      end
+
+      it 'triggers the handler for all errors' do
+        expect(subject.execute(CustomError)).to eq('common callback fired')
+        expect(subject.execute(OtherCustomError)).to eq('common callback fired')
+        expect { subject.execute(ArgumentError) }.to raise_error(ArgumentError)
+      end
+    end
+  end
+
+  context 'with different kinds of steps registered' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:service) do |step, arg|
+          step.transformer.call(arg)
+        end
+
+        pipeline.constructor(:other) do |step, arg|
+          step.splitter.call(arg)
+        end
+
+        pipeline.step :service, transformer: -> (arg) { arg.upcase }
+        pipeline.step :other, splitter: -> (arg) { arg.chars.join('_') }
+        pipeline.step :service, transformer: -> (arg) { (arg.chars + %w[_] + arg.chars).join }
+      end
+    end
+
+    it 'executes the steps' do
+      expect(subject.execute('hanna')).to eq('H_A_N_N_A_H_A_N_N_A')
+    end
+  end
+
+  context 'default step' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:proc, default: true) do |step, arg|
+          step.transformer.call(arg)
+        end
+
+        pipeline.step transformer: -> (arg) { arg.upcase }
+        pipeline.step transformer: -> (arg) { arg.chars.join('_') }
+      end
+    end
+
+    it 'executes the steps' do
+      expect(subject.execute('hanna')).to eq('H_A_N_N_A')
+    end
+
+    context 'when defined multiple times' do
+      it 'raises an error' do
+        expect {
+          NxtPipeline::Pipeline.new do |pipeline|
+            pipeline.constructor(:proc, default: true) do |step, arg|
+              step.transformer.call(arg)
+            end
+
+            pipeline.constructor(:lambda, default: true) do |step, arg|
+              step.transformer.call(arg)
+            end
+          end
+        }.to raise_error(ArgumentError, 'Default step already defined')
+      end
+    end
+  end
+
+  context 'steps with blocks' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.step do |step, arg|
+          arg.upcase
+        end
+
+        pipeline.step :second_step do |step, arg|
+          arg.chars.join('_')
+        end
+      end
+    end
+
+    it 'executes the steps' do
+      expect(subject.execute('hanna')).to eq('H_A_N_N_A')
+    end
+
+    it 'logs the steps' do
+      subject.execute('hanna')
+      expect(subject.log).to eq("NxtPipeline::Step opts => {}" => { :status=>:success }, :second_step => { :status=>:success })
+    end
+  end
+
+  context 'when used inside a class' do
+    class Transformer
+      def initialize(string)
+        @string = string
+      end
+
+      def call
+        pipeline.execute(@string)
+      end
+
+      def pipeline
+        NxtPipeline::Pipeline.new do |pipeline|
+          pipeline.step do |_, arg|
+            transform_upcase(arg)
+          end
+        end
+      end
+
+      def transform_upcase(string)
+        string.upcase
       end
     end
 
     subject do
-      klass = Class.new(NxtPipeline::Pipeline) do
-        pipe_attr :words
-      end
-
-      klass.step uppercase_step
-      klass.step sort_step
-
-      klass
+      Transformer.new('hanna').call
     end
 
-    it 'pipes the pipe attr through the steps and returns them transformed' do
-      expect(subject.new(words: pipe_attr).run).to eq %w[AWESOME IS RUBY]
+    it 'can access the methods in the scope' do
+      expect(subject).to eq('HANNA')
     end
   end
 
-  context 'with failing steps' do
-    class TestError < StandardError; end
+  describe '#configure' do
+    subject { NxtPipeline::Pipeline.new }
 
-    let(:uppercase_step) do
-      Class.new(NxtPipeline::Step) do
-        def pipe_through
-          words.map(&:upcase)
+    before do
+      subject.configure do |pipeline|
+        pipeline.step :transformer, method: :upcase do |step, arg|
+          arg.send(step.method)
         end
       end
     end
 
-    let(:sort_step) do
-      Class.new(NxtPipeline::Step) do
-        def pipe_through
-          words.sort
-        end
-      end
-    end
-
-    let(:failing_step) do
-      class FailingStep < NxtPipeline::Step
-        def pipe_through
-          raise TestError, 'This step has failed!'
-        end
-      end
-
-      FailingStep
-    end
-
-    context 'without rescuing for step errors' do
-      subject do
-        klass = Class.new(NxtPipeline::Pipeline) do
-          pipe_attr :words
-        end
-
-        klass.step uppercase_step
-        klass.step failing_step
-        klass.step sort_step
-
-        klass
-      end
-
-      it 'raises an error and remembers which step error' do
-        expect { subject.new(words: pipe_attr).run }.to raise_error(
-          TestError,
-          'This step has failed!'
-        )
-      end
-
-      it 'remembers the step that failed' do
-        pipeline = subject.new(words: pipe_attr)
-        pipeline.run rescue TestError
-
-        expect(pipeline.failed_step).to eq 'failing_step'
-        expect(pipeline.failed?).to be_truthy
-      end
-    end
-
-    context 'when rescuing for step errors' do
-      subject do
-        klass = Class.new(NxtPipeline::Pipeline) do
-          pipe_attr :words
-        end
-
-        klass.step uppercase_step
-        klass.step failing_step
-        klass.step sort_step
-
-        klass.rescue_errors TestError do |error, failed_step|
-          puts "Failed in step #{failed_step} with #{error.class}: #{error.message}"
-        end
-
-        klass
-      end
-
-      it 'should call the block defined for step error rescues' do
-        expect { subject.new(words: pipe_attr).run }.to raise_error(
-          TestError,
-          'This step has failed!'
-        ).and output("Failed in step failing_step with TestError: This step has failed!\n").to_stdout
-      end
+    it 'configures the pipeline' do
+      expect(subject.execute('hanna')).to eq('HANNA')
     end
   end
-  
-  context 'callbacks' do
-    let(:empty_step) do
-      Class.new(NxtPipeline::Step) do
-        def pipe_through
-          words
-        end
-      end
-    end
-        
+
+  describe '.execute' do
     subject do
-      klass = Class.new(NxtPipeline::Pipeline) do
-        pipe_attr :words
-        
-        def history
-          @history ||= []
+      NxtPipeline::Pipeline.execute('hanna') do |pipeline|
+        pipeline.step do |_, arg|
+          arg.upcase
         end
       end
-
-      klass.step empty_step
-      
-      klass.before_each_step do |pipeline|
-        pipeline.history << 'Pipeline ran before_each_step callback'
-      end
-      
-      klass.after_each_step do |pipeline|
-        pipeline.history << 'Pipeline ran after_each_step callback'
-      end
-      
-      klass.around_each_step do |pipeline, block|
-        pipeline.history << 'Pipeline ran around_each_step callback start'
-        block.call
-        pipeline.history << 'Pipeline ran around_each_step callback end'
-      end
-
-      klass
     end
-    
-    it 'should execute the callbacks in the correct order' do
-      pipeline = subject.new(words: pipe_attr)
-      pipeline.run
-      
-      expect(pipeline.history).to eq [
-        'Pipeline ran before_each_step callback',
-        'Pipeline ran around_each_step callback start',
-        'Pipeline ran around_each_step callback end',
-        'Pipeline ran after_each_step callback',
-      ]
+
+    it 'executes the steps directly' do
+      expect(subject).to eq('HANNA')
     end
   end
 end

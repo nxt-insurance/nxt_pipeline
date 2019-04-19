@@ -1,81 +1,97 @@
 module NxtPipeline
   class Pipeline
-    include ActiveSupport::Callbacks
-    define_callbacks :each_step_pipe_through
-    
-    attr_reader :failed_step
-
-    def initialize(*attrs)
-      extract_pipe_attr_from_init_params(*attrs)
+    def self.execute(opts, &block)
+      new(&block).execute(opts)
     end
 
-    def run
-      self.class.steps.reduce(pipe_attr) do |transformed_pipe_attr, step|
-        run_callbacks :each_step_pipe_through do
-          step[self.class.pipe_attr_name].new(self.class.pipe_attr_name => transformed_pipe_attr).pipe_through
-        rescue => error
-          handle_segment_burst(error, step)
+    def initialize(&block)
+      @steps = []
+      @error_callbacks = []
+      @log = {}
+      @current_step = nil
+      @default_constructor = nil
+      @registry = {}
+      configure(&block) if block_given?
+    end
+
+    attr_reader :log
+
+    # register steps with name and block
+    def constructor(name, **opts, &constructor)
+      name = name.to_sym
+      raise StandardError, "Already registered step :#{name}" if registry[name]
+
+      registry[name] = constructor
+
+      return unless opts.fetch(:default, false)
+      default_constructor ? (raise ArgumentError, 'Default step already defined') : self.default_constructor = constructor
+    end
+
+    def step(type = nil, **opts, &block)
+      constructor = if block_given?
+        # make first argument the to_s of step if given
+        opts.merge!(to_s: type) if type && !opts.key?(:to_s)
+        block
+      else
+        if type
+          registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+        else
+          default_constructor || (raise StandardError, 'No default step registered')
         end
       end
+
+      steps << Step.new(constructor, **opts)
     end
 
-    def failed?
-      failed_step.present?
+    def execute(arg, &block)
+      reset_log
+      configure(&block) if block_given?
+      steps.inject(arg) do |argument, step|
+        execute_step(step, argument)
+      end
     end
 
-    class << self
-      def pipe_attr(name)
-        @pipe_attr_name = name
-      end
+    def on_errors(*errors, &callback)
+      error_callbacks << ErrorCallback.new(errors, callback)
+    end
 
-      def step(name)
-        self.steps << name
-      end
+    alias :on_error :on_errors
 
-      def rescue_errors(*errors, &block)
-        @rescueable_errors = errors
-        self.rescueable_block = block
-      end
-      
-      def before_each_step(*filters, &block)
-        set_callback :each_step_pipe_through, :before, *filters, &block
-      end
-      
-      def after_each_step(*filters, &block)
-        set_callback :each_step_pipe_through, :after, *filters, &block
-      end
-      
-      def around_each_step(*filters, &block)
-        set_callback :each_step_pipe_through, :around, *filters, &block
-      end
-      
-      attr_reader :pipe_attr_name
-      attr_accessor :rescueable_block
-      
-      def steps
-        @steps ||= []
-      end
-      
-      def rescueable_errors
-        @rescueable_errors ||= []
-      end
+    def configure(&block)
+      block.call(self)
     end
 
     private
 
-    attr_reader :pipe_attr
+    attr_reader :error_callbacks, :registry
+    attr_accessor :steps, :current_step, :default_constructor
+    attr_writer :log
 
-    def extract_pipe_attr_from_init_params(*attrs)
-      raise ArgumentError, 'You need to pass a keyword param as argument to #new' unless attrs.first.is_a?(Hash)
-      @pipe_attr = attrs.first.fetch(self.class.pipe_attr_name)
+    def execute_step(step, arg)
+      self.current_step = step.to_s
+      result = step.execute(arg)
+
+      if result # step was successful
+        log[current_step] = { status: :success }
+        return result
+      else # step was not successful if nil or false
+        log[current_step] = { status: :skipped }
+        return arg
+      end
+    rescue StandardError => error
+      log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
+      callback = find_error_callback(error)
+
+      raise unless callback
+      callback.call(step, arg, error)
     end
 
-    def handle_segment_burst(error, step)
-      @failed_step = step.name.split('::').last.underscore
+    def find_error_callback(error)
+      error_callbacks.find { |callback| callback.applies_to_error?(error) }
+    end
 
-      self.class.rescueable_block.call(error, failed_step) if error.class.in?(self.class.rescueable_errors)
-
-      raise
+    def reset_log
+      self.log = {}
     end
   end
 end

@@ -1,47 +1,32 @@
 module NxtPipeline
   class Step
-    def initialize(*args)
-      validate_initialize_args(*args).each do |key, value|
-        send("#{key}=", value)
-      end
+    def initialize(constructor, **opts)
+      define_attr_readers(opts)
+      @opts = opts
+      @constructor = constructor
     end
 
-    def pipe_through
-      # Public interface of Step, to be implemented by subclasses.
-      raise NotImplementedError
+    attr_accessor :constructor
+
+    def execute(arg)
+      constructor.call(self, arg)
+      # instance_exec(arg, &constructor)
     end
 
-    def self.[](*args)
-      raise ArgumentError, 'Arguments missing' if args.empty?
-
-      Class.new(self) do
-        self.step_args = args.map(&:to_sym)
-
-        self.step_args.each do |step_arg|
-          attr_accessor step_arg
-        end
-      end
+    def to_s
+      "#{self.class} opts => #{opts}"
     end
 
     private
 
-    cattr_accessor :step_args, instance_writer: false, default: []
+    attr_reader :opts
 
-    def validate_initialize_args(*args)
-      raise ArgumentError, arguments_missing_msg(self.step_args) if args.empty?
-
-      keyword_args = args.first
-      missing_keyword_args = self.step_args.reject do |arg|
-        keyword_args.include?(arg)
+    def define_attr_readers(opts)
+      opts.each do |key, value|
+        define_singleton_method key.to_s do
+          value
+        end
       end
-
-      raise ArgumentError, arguments_missing_msg(missing_keyword_args) if missing_keyword_args.any?
-
-      keyword_args.slice(*self.step_args)
-    end
-
-    def arguments_missing_msg(missing_arg_keys)
-      "Arguments missing: #{missing_arg_keys.map { |a| "#{a}:" }.join(', ')}"
     end
   end
 end
