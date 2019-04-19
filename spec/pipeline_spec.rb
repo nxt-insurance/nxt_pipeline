@@ -105,9 +105,9 @@ RSpec.describe NxtPipeline do
       subject.execute('hanna')
 
       expect(subject.log).to eq(
-                                 "StepOne" => "success",
-                                 "StepSkipped"=>"skipped",
-                                 "StepWithArgumentError" => "failed with ArgumentError: This is not a fish"
+                                 "StepOne" => { status: :success },
+                                 "StepSkipped"=> { status: :skipped },
+                                 "StepWithArgumentError" => { status: :failed, reason: "ArgumentError: This is not a fish" }
                              )
     end
   end
@@ -272,7 +272,7 @@ RSpec.describe NxtPipeline do
 
     it 'logs the steps' do
       subject.execute('hanna')
-      expect(subject.log).to eq(:second_step => "success", "NxtPipeline::Step opts => {}" => "success")
+      expect(subject.log).to eq("NxtPipeline::Step opts => {}" => { :status=>:success }, :second_step => { :status=>:success })
     end
   end
 

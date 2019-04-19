@@ -72,14 +72,14 @@ module NxtPipeline
       result = step.execute(arg)
 
       if result # step was successful
-        log[current_step] = 'success'
+        log[current_step] = { status: :success }
         return result
       else # step was not successful if nil or false
-        log[current_step] = 'skipped'
+        log[current_step] = { status: :skipped }
         return arg
       end
     rescue StandardError => error
-      log[current_step] = "failed with #{error.class}: #{error.message}"
+      log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
       callback = find_error_callback(error)
 
       raise unless callback
