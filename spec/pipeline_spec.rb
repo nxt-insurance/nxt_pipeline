@@ -322,6 +322,14 @@ RSpec.describe NxtPipeline do
     it 'configures the pipeline' do
       expect(subject.execute('hanna')).to eq('HANNA')
     end
+
+    it 'returns itself' do
+      expect(subject.configure do |pipeline|
+        pipeline.step :transformer, method: :upcase do |step, arg|
+          arg.send(step.method)
+        end
+      end).to eq(subject)
+    end
   end
 
   describe '.execute' do

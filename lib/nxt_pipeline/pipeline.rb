@@ -59,6 +59,7 @@ module NxtPipeline
 
     def configure(&block)
       block.call(self)
+      self
     end
 
     private
