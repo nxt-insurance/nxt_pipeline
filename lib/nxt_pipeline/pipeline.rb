@@ -9,6 +9,7 @@ module NxtPipeline
       @error_callbacks = []
       @log = {}
       @current_step = nil
+      @current_arg = nil
       @default_constructor = nil
       @registry = {}
       configure(&block) if block_given?
@@ -49,6 +50,12 @@ module NxtPipeline
       steps.inject(arg) do |argument, step|
         execute_step(step, argument)
       end
+    rescue StandardError => error
+      log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
+      callback = find_error_callback(error)
+
+      raise unless callback
+      callback.call(current_step, current_arg, error)
     end
 
     def on_errors(*errors, &callback)
@@ -65,26 +72,21 @@ module NxtPipeline
     private
 
     attr_reader :error_callbacks, :registry
-    attr_accessor :steps, :current_step, :default_constructor
+    attr_accessor :steps, :current_step, :current_arg, :default_constructor
     attr_writer :log
 
     def execute_step(step, arg)
       self.current_step = step.to_s
+      self.current_arg = arg
       result = step.execute(arg)
 
       if result # step was successful
         log[current_step] = { status: :success }
-        return result
+        result
       else # step was not successful if nil or false
         log[current_step] = { status: :skipped }
-        return arg
+        arg
       end
-    rescue StandardError => error
-      log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
-      callback = find_error_callback(error)
-
-      raise unless callback
-      callback.call(step, arg, error)
     end
 
     def find_error_callback(error)
@@ -93,6 +95,7 @@ module NxtPipeline
 
     def reset_log
       self.log = {}
+      self.current_arg = nil
     end
   end
 end
