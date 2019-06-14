@@ -130,6 +130,24 @@ NxtPipeline::Pipeline.new do |p|
 end
 ``` 
 
+### Before and After callbacks
+
+You can also define callbacks that run before and after the `#execute` action. Both callback blocks get the pipeline instance (to access stuff like the `log`) and the argument of the pipeline yielded.
+
+```ruby
+NxtPipeline::Pipeline.new do |p|
+  p.before_execute do |pipeline, arg|
+    # Will be called from within #execute before entering the first step
+  end
+  
+  p.after_execute do |pipeline, arg|
+    # Will be called from within #execute after executing last step
+  end
+end
+```
+
+Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
+
 
 ## Development
 

@@ -198,6 +198,46 @@ RSpec.describe NxtPipeline do
     end
   end
 
+  context 'before_execute and after_execute callbacks' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.step do |_, arg|
+          arg
+        end
+
+        pipeline.before_execute do |pipeline, arg|
+          arg.prepend('before ')
+        end
+
+        pipeline.after_execute do |pipeline, arg|
+          arg << ' after'
+        end
+      end
+    end
+
+    it 'calls the callbacks in the correct order' do
+      expect(subject.execute('getsafe')).to eq('before getsafe after')
+    end
+
+    context 'with after_execute callback accessing the pipeline log' do
+      subject do
+        NxtPipeline::Pipeline.new do |pipeline|
+          pipeline.step to_s: 'anonymous_step' do |_, arg|
+            arg
+          end
+
+          pipeline.after_execute do |pipeline, arg|
+            arg << " => status: #{pipeline.log.dig('anonymous_step', :status)}"
+          end
+        end
+      end
+
+      it 'accesses the pipeline log' do
+        expect(subject.execute('getsafe')).to eq('getsafe => status: success')
+      end
+    end
+  end
+
   context 'with different kinds of steps registered' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|

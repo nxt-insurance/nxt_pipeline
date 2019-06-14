@@ -46,10 +46,13 @@ module NxtPipeline
 
     def execute(arg, &block)
       reset_log
+      before_execute_callback.call(self, arg) if before_execute_callback.respond_to?(:call)
       configure(&block) if block_given?
-      steps.inject(arg) do |argument, step|
+      result = steps.inject(arg) do |argument, step|
         execute_step(step, argument)
       end
+      after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
+      result
     rescue StandardError => error
       log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
       callback = find_error_callback(error)
@@ -64,6 +67,14 @@ module NxtPipeline
 
     alias :on_error :on_errors
 
+    def before_execute(&callback)
+      self.before_execute_callback = callback
+    end
+
+    def after_execute(&callback)
+      self.after_execute_callback = callback
+    end
+
     def configure(&block)
       block.call(self)
       self
@@ -72,7 +83,7 @@ module NxtPipeline
     private
 
     attr_reader :error_callbacks, :registry
-    attr_accessor :steps, :current_step, :current_arg, :default_constructor
+    attr_accessor :steps, :current_step, :current_arg, :default_constructor, :before_execute_callback, :after_execute_callback
     attr_writer :log
 
     def execute_step(step, arg)
