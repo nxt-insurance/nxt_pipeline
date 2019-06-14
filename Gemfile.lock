@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nxt_pipeline (0.2.3)
+    nxt_pipeline (0.2.4)
       activesupport
 
 GEM
