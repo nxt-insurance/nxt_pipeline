@@ -205,11 +205,11 @@ RSpec.describe NxtPipeline do
           arg
         end
 
-        pipeline.before_execute do |arg|
+        pipeline.before_execute do |pipeline, arg|
           arg.prepend('before ')
         end
 
-        pipeline.after_execute do |arg, log|
+        pipeline.after_execute do |pipeline, arg|
           arg << ' after'
         end
       end
@@ -226,8 +226,8 @@ RSpec.describe NxtPipeline do
             arg
           end
 
-          pipeline.after_execute do |arg, log|
-            arg << " => status: #{log.dig('anonymous_step', :status)}"
+          pipeline.after_execute do |pipeline, arg|
+            arg << " => status: #{pipeline.log.dig('anonymous_step', :status)}"
           end
         end
       end

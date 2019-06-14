@@ -46,12 +46,12 @@ module NxtPipeline
 
     def execute(arg, &block)
       reset_log
-      before_execute_callback.call(arg) if before_execute_callback.respond_to?(:call)
+      before_execute_callback.call(self, arg) if before_execute_callback.respond_to?(:call)
       configure(&block) if block_given?
       result = steps.inject(arg) do |argument, step|
         execute_step(step, argument)
       end
-      after_execute_callback.call(result, log) if after_execute_callback.respond_to?(:call)
+      after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
       result
     rescue StandardError => error
       log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
