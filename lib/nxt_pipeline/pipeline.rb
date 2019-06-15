@@ -7,15 +7,15 @@ module NxtPipeline
     def initialize(&block)
       @steps = []
       @error_callbacks = []
-      @log = {}
+      @logger = Logger.new
       @current_step = nil
       @current_arg = nil
-      @default_constructor = nil
+      @default_constructor_name = nil
       @registry = {}
       configure(&block) if block_given?
     end
 
-    attr_reader :log
+    attr_accessor :logger
 
     # register steps with name and block
     def constructor(name, **opts, &constructor)
@@ -25,36 +25,42 @@ module NxtPipeline
       registry[name] = constructor
 
       return unless opts.fetch(:default, false)
-      default_constructor ? (raise ArgumentError, 'Default step already defined') : self.default_constructor = constructor
+      default_constructor_name ? (raise ArgumentError, 'Default step already defined') : self.default_constructor_name = name
     end
 
     def step(type = nil, **opts, &block)
       constructor = if block_given?
+        type ||= :inline
         # make first argument the to_s of step if given
-        opts.merge!(to_s: type) if type && !opts.key?(:to_s)
+        # opts.merge!(to_s: type) if type && !opts.key?(:to_s)
         block
       else
         if type
           registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
         else
+          type = default_constructor_name
           default_constructor || (raise StandardError, 'No default step registered')
         end
       end
 
-      steps << Step.new(constructor, **opts)
+      steps << Step.new(type, constructor, **opts)
     end
 
     def execute(arg, &block)
-      reset_log
-      before_execute_callback.call(self, arg) if before_execute_callback.respond_to?(:call)
+      reset
+
       configure(&block) if block_given?
+      before_execute_callback.call(self, arg) if before_execute_callback.respond_to?(:call)
+
       result = steps.inject(arg) do |argument, step|
         execute_step(step, argument)
       end
+
       after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
       result
     rescue StandardError => error
-      log[current_step] = { status: :failed, reason: "#{error.class}: #{error.message}" }
+
+      log_step(current_step)
       callback = find_error_callback(error)
 
       raise unless callback
@@ -83,30 +89,32 @@ module NxtPipeline
     private
 
     attr_reader :error_callbacks, :registry
-    attr_accessor :steps, :current_step, :current_arg, :default_constructor, :before_execute_callback, :after_execute_callback
-    attr_writer :log
+    attr_accessor :steps, :current_step, :current_arg, :default_constructor_name, :before_execute_callback, :after_execute_callback
+
+    def default_constructor
+      return unless default_constructor_name
+      @default_constructor ||= registry[default_constructor_name.to_sym]
+    end
 
     def execute_step(step, arg)
-      self.current_step = step.to_s
+      self.current_step = step
       self.current_arg = arg
       result = step.execute(arg)
-
-      if result # step was successful
-        log[current_step] = { status: :success }
-        result
-      else # step was not successful if nil or false
-        log[current_step] = { status: :skipped }
-        arg
-      end
+      log_step(step)
+      result || arg
     end
 
     def find_error_callback(error)
       error_callbacks.find { |callback| callback.applies_to_error?(error) }
     end
 
-    def reset_log
-      self.log = {}
+    def log_step(step)
+      logger.call(step) if logger.respond_to?(:call)
+    end
+
+    def reset
       self.current_arg = nil
+      self.current_step = nil
     end
   end
 end
