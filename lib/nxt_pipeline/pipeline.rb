@@ -59,7 +59,6 @@ module NxtPipeline
       after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
       result
     rescue StandardError => error
-
       log_step(current_step)
       callback = find_error_callback(error)
 

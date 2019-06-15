@@ -16,6 +16,7 @@ module NxtPipeline
 
     def execute(arg)
       self.result = constructor.call(self, arg)
+      set_status
       result
     rescue StandardError => e
       self.status = :failed
@@ -40,7 +41,7 @@ module NxtPipeline
     end
 
     def set_status
-      self.status = result.present? ? :success : :failed
+      self.status = result ? :success : :skipped
     end
   end
 end
