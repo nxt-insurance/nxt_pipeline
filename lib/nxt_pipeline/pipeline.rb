@@ -31,7 +31,7 @@ module NxtPipeline
 
     def step(type = nil, **opts, &block)
       if block_given?
-        s = inline_step(inline_step(type = :inline, block, **opts))
+        s = inline_step(type = :inline, block, **opts)
         return steps << s
       end
 
