@@ -42,28 +42,6 @@ module NxtPipeline
       steps << Step.new(type, constructor, **opts)
     end
 
-    # def step(type = nil, **opts, &block)
-    #   if block_given?
-    #     s = inline_step(type = :inline, block, **opts)
-    #     return steps << s
-    #   end
-    #
-    #   constructor = if type
-    #     registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
-    #   else
-    #     type = default_constructor_name
-    #     default_constructor || (raise StandardError, 'No default step registered')
-    #   end
-    #
-    #   s = Step.new(type, constructor, **opts)
-    #   steps << s
-    # end
-
-    # def inline_step(type = :inline, constructor, **opts)
-    #   opts.reverse_merge!(to_s: type)
-    #   Step.new(type, constructor, **opts)
-    # end
-
     def execute(arg, &block)
       reset
 
