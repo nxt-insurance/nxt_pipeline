@@ -16,6 +16,8 @@ module NxtPipeline
       configure(&block) if block_given?
     end
 
+    alias_method :configure, :tap
+
     attr_accessor :logger
 
     # register steps with name and block
@@ -84,10 +86,6 @@ module NxtPipeline
 
     def after_execute(&callback)
       self.after_execute_callback = callback
-    end
-
-    def configure(&block)
-      self.tap(&block)
     end
 
     def resolve_constructor(type, &block)
