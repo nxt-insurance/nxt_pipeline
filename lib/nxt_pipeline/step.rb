@@ -11,7 +11,6 @@ module NxtPipeline
       @error = nil
     end
 
-    attr_accessor :constructor # TODO: Why is this an accessor? --> Should be private reader
     attr_reader :type, :result, :status, :error, :opts
 
     def execute(arg)
@@ -31,6 +30,7 @@ module NxtPipeline
     private
 
     attr_writer :result, :status, :error
+    attr_reader :constructor
 
     def define_attr_readers(opts)
       opts.each do |key, value|

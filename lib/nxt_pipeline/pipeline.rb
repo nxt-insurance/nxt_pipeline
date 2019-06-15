@@ -12,6 +12,7 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @registry = {}
+
       configure(&block) if block_given?
     end
 
@@ -88,7 +89,12 @@ module NxtPipeline
     private
 
     attr_reader :error_callbacks, :registry
-    attr_accessor :steps, :current_step, :current_arg, :default_constructor_name, :before_execute_callback, :after_execute_callback
+    attr_accessor :steps,
+                  :current_step,
+                  :current_arg,
+                  :default_constructor_name,
+                  :before_execute_callback,
+                  :after_execute_callback
 
     def default_constructor
       return unless default_constructor_name
