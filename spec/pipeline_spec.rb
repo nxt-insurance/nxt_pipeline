@@ -227,12 +227,12 @@ RSpec.describe NxtPipeline do
           end
 
           pipeline.after_execute do |pipeline, arg|
-            arg << " => status: #{pipeline.log.dig('anonymous_step', :status)}"
+            arg << " => status: #{pipeline.logger.log.dig('anonymous_step')}"
           end
         end
       end
 
-      it 'accesses the pipeline log' do
+      it 'accesses the loggers log' do
         expect(subject.execute('getsafe')).to eq('getsafe => status: success')
       end
     end
@@ -312,7 +312,7 @@ RSpec.describe NxtPipeline do
 
     it 'logs the steps' do
       subject.execute('hanna')
-      expect(subject.log).to eq("NxtPipeline::Step opts => {}" => { :status=>:success }, :second_step => { :status=>:success })
+      expect(subject.logger.log).to eq(:inline => :success, :second_step => :success)
     end
   end
 
