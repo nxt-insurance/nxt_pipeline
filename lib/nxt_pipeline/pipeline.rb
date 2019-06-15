@@ -31,25 +31,38 @@ module NxtPipeline
 
     def step(type = nil, **opts, &block)
       if block_given?
-        s = inline_step(type = :inline, block, **opts)
-        return steps << s
+        # When block is given, the block is the constructor
+        # type becomes :to_s for inline constructors
+        # if no type was given call it :inline
+        type ||= :inline
+        opts.reverse_merge!(to_s: type)
       end
 
-      constructor = if type
-        registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
-      else
-        type = default_constructor_name
-        default_constructor || (raise StandardError, 'No default step registered')
-      end
-
-      s = Step.new(type, constructor, **opts)
-      steps << s
+      constructor = resolve_constructor(type, &block)
+      steps << Step.new(type, constructor, **opts)
     end
 
-    def inline_step(type = :inline, constructor, **opts)
-      opts.reverse_merge!(to_s: type)
-      Step.new(type, constructor, **opts)
-    end
+    # def step(type = nil, **opts, &block)
+    #   if block_given?
+    #     s = inline_step(type = :inline, block, **opts)
+    #     return steps << s
+    #   end
+    #
+    #   constructor = if type
+    #     registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+    #   else
+    #     type = default_constructor_name
+    #     default_constructor || (raise StandardError, 'No default step registered')
+    #   end
+    #
+    #   s = Step.new(type, constructor, **opts)
+    #   steps << s
+    # end
+
+    # def inline_step(type = :inline, constructor, **opts)
+    #   opts.reverse_merge!(to_s: type)
+    #   Step.new(type, constructor, **opts)
+    # end
 
     def execute(arg, &block)
       reset
@@ -88,6 +101,16 @@ module NxtPipeline
 
     def configure(&block)
       self.tap(&block)
+    end
+
+    def resolve_constructor(type, &block)
+      return block if block_given?
+
+      if type
+        registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+      else
+        default_constructor || (raise StandardError, 'No default step registered')
+      end
     end
 
     private
