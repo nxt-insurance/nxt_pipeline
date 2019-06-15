@@ -41,7 +41,7 @@ module NxtPipeline
     end
 
     def set_status
-      self.status = result ? :success : :skipped
+      self.status = result.present? ? :success : :skipped
     end
   end
 end

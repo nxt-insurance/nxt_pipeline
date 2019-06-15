@@ -30,21 +30,25 @@ module NxtPipeline
     end
 
     def step(type = nil, **opts, &block)
-      constructor = if block_given?
-        type ||= :inline
-        # make first argument the to_s of step if given
-        # opts.merge!(to_s: type) if type && !opts.key?(:to_s)
-        block
-      else
-        if type
-          registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
-        else
-          type = default_constructor_name
-          default_constructor || (raise StandardError, 'No default step registered')
-        end
+      if block_given?
+        s = inline_step(inline_step(type = :inline, block, **opts))
+        return steps << s
       end
 
-      steps << Step.new(type, constructor, **opts)
+      constructor = if type
+        registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+      else
+        type = default_constructor_name
+        default_constructor || (raise StandardError, 'No default step registered')
+      end
+
+      s = Step.new(type, constructor, **opts)
+      steps << s
+    end
+
+    def inline_step(type = :inline, constructor, **opts)
+      opts.reverse_merge!(to_s: type)
+      Step.new(type, constructor, **opts)
     end
 
     def execute(arg, &block)
@@ -64,6 +68,7 @@ module NxtPipeline
       callback = find_error_callback(error)
 
       raise unless callback
+
       callback.call(current_step, current_arg, error)
     end
 
@@ -82,8 +87,7 @@ module NxtPipeline
     end
 
     def configure(&block)
-      block.call(self)
-      self
+      self.tap(&block)
     end
 
     private
@@ -98,6 +102,7 @@ module NxtPipeline
 
     def default_constructor
       return unless default_constructor_name
+
       @default_constructor ||= registry[default_constructor_name.to_sym]
     end
 
@@ -114,7 +119,9 @@ module NxtPipeline
     end
 
     def log_step(step)
-      logger.call(step) if logger.respond_to?(:call)
+      return unless logger.respond_to?(:call)
+
+      logger.call(step)
     end
 
     def reset

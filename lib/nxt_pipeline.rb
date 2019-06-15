@@ -1,3 +1,4 @@
+require 'active_support/all'
 require 'nxt_pipeline/version'
 require 'nxt_pipeline/logger'
 require 'nxt_pipeline/pipeline'
