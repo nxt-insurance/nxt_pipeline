@@ -26,7 +26,16 @@ module NxtPipeline
       registry[name] = constructor
 
       return unless opts.fetch(:default, false)
-      default_constructor_name ? (raise ArgumentError, 'Default step already defined') : self.default_constructor_name = name
+      set_default_constructor(name)
+    end
+
+    def set_default_constructor(name)
+      raise_duplicate_default_constructor if default_constructor_name.present?
+      self.default_constructor_name = name
+    end
+
+    def raise_duplicate_default_constructor
+      raise ArgumentError, 'Default step already defined'
     end
 
     def step(type = nil, **opts, &block)
