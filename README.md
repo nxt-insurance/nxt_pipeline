@@ -76,7 +76,9 @@ pipeline.step to_s: 'This is the same as above' do |step, arg|
 end
 ```
 
-You can also define inline steps, meaning the block will be executed.
+You can also define inline steps, meaning the block will be executed. When you do not provide a :to_s option, type
+will be used as :to_s option per default. When no type was given for an inline block the type of the inline block 
+will be set to :inline. 
 
 ### Execution
 
@@ -104,6 +106,13 @@ NxtPipeline::Pipeline.execute('initial argument') do |p|
     arg.upcase
   end
 end
+``` 
+
+You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with 
+an interface it's type, options, status (:success, :skipped, :failed), result, error and the index in the pipeline.
+
+```
+pipeline.steps.first 
 ``` 
 
 ### Error callbacks
