@@ -109,7 +109,7 @@ end
 ``` 
 
 You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with 
-an interface it's type, options, status (:success, :skipped, :failed), result, error and the index in the pipeline.
+an interface to it's type, options, status (:success, :skipped, :failed), result, error and the index in the pipeline.
 
 ```
 pipeline.steps.first 
