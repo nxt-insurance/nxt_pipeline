@@ -158,6 +158,7 @@ You can also define callbacks that run before and after the `#execute` action. B
 NxtPipeline::Pipeline.new do |p|
   p.before_execute do |pipeline, arg|
     # Will be called from within #execute before entering the first step
+    # After any configure block though!  
   end
   
   p.after_execute do |pipeline, arg|
