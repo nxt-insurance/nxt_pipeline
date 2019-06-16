@@ -369,9 +369,17 @@ RSpec.describe NxtPipeline do
       expect(subject.steps.find { |s| s.type?(:second_step) }.result).to eq('H_A_N_N_A')
     end
 
-    context 'when trying to define the type :inline' do
-      it 'raises an error' do
+    context 'when :to_s option was provided' do
+      before do
+        subject.configure do |p|
+          p.step to_s: 'What is my name' do |step, arg|
+            arg.prepend('My name is: ')
+          end
+        end
+      end
 
+      it 'does not use the type as :to_s option' do
+        expect(subject.steps.last.to_s).to eq('What is my name')
       end
     end
   end

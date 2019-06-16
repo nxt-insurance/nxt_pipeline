@@ -76,7 +76,7 @@ pipeline.step to_s: 'This is the same as above' do |step, arg|
 end
 ```
 
-You can also define inline steps, meaning the block will be executed
+You can also define inline steps, meaning the block will be executed.
 
 ### Execution
 
