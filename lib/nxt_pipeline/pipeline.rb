@@ -18,7 +18,7 @@ module NxtPipeline
 
     alias_method :configure, :tap
 
-    attr_accessor :logger
+    attr_accessor :logger, :steps
 
     # register steps with name and block
     def constructor(name, **opts, &constructor)
@@ -41,6 +41,8 @@ module NxtPipeline
     end
 
     def step(type = nil, **opts, &block)
+      type = type&.to_sym
+
       constructor = if block_given?
         # make type the :to_s of inline steps
         # fall back to :inline if no type is given
@@ -49,14 +51,17 @@ module NxtPipeline
         block
       else
         if type
+          raise_reserved_type_inline_error if type == :inline
           registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
         else
+          # When no type was given we try to fallback to the type of the default constructor
           type = default_constructor_name
+          # If none was given - raise
           default_constructor || (raise StandardError, 'No default step registered')
         end
       end
 
-      steps << Step.new(type, constructor, **opts)
+      steps << Step.new(type, constructor, steps.count, **opts)
     end
 
     def execute(arg, &block)
@@ -97,8 +102,7 @@ module NxtPipeline
     private
 
     attr_reader :error_callbacks, :registry
-    attr_accessor :steps,
-                  :current_step,
+    attr_accessor :current_step,
                   :current_arg,
                   :default_constructor_name,
                   :before_execute_callback,
@@ -131,6 +135,10 @@ module NxtPipeline
     def reset
       self.current_arg = nil
       self.current_step = nil
+    end
+
+    def raise_reserved_type_inline_error
+      raise ArgumentError, 'Type :inline is reserved for inline steps!'
     end
   end
 end

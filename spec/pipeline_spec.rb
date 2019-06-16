@@ -47,8 +47,33 @@ RSpec.describe NxtPipeline do
       end
     end
 
+    it 'indexes the steps' do
+      expect(subject.steps.find { |s| s.service_class == StepOne }.index).to eq(0)
+      expect(subject.steps.find { |s| s.service_class == StepSkipped }.index).to eq(1)
+    end
+
+    it 'assigns the correct type to ech step' do
+      expect(subject.steps.map(&:type)).to all(eq(:service))
+    end
+
     it 'executes the steps' do
       expect(subject.execute('hanna')).to eq('HANNA')
+    end
+
+    it 'remembers the results of the steps on the steps' do
+      subject.execute('hanna')
+
+      expect(subject.steps.first.result).to eq('HANNA')
+      expect(subject.steps.second.result).to be_nil
+    end
+
+    it 'logs the steps' do
+      subject.execute('hanna')
+
+      expect(subject.logger.log).to eq(
+        '{:service_class=>StepOne, :type=>:service}' => :success,
+        '{:service_class=>StepSkipped, :type=>:service}' => :skipped
+      )
     end
   end
 
@@ -109,6 +134,18 @@ RSpec.describe NxtPipeline do
         "StepSkipped" => :skipped,
         "StepWithArgumentError" => :failed
       )
+    end
+
+    it 'sets the status of the steps' do
+      subject.execute('hanna')
+
+      expect(subject.steps.map(&:status)).to eq(%i[success skipped failed])
+    end
+
+    it 'remembers the error on the step' do
+      subject.execute('hanna')
+
+      expect(subject.steps.map(&:error)).to match([nil, nil, be_a(ArgumentError)])
     end
   end
 
@@ -219,7 +256,7 @@ RSpec.describe NxtPipeline do
       expect(subject.execute('getsafe')).to eq('before getsafe after')
     end
 
-    context 'with after_execute callback accessing the pipeline log' do
+    context 'with after_execute callback' do
       subject do
         NxtPipeline::Pipeline.new do |pipeline|
           pipeline.step to_s: 'anonymous_step' do |_, arg|
@@ -232,7 +269,7 @@ RSpec.describe NxtPipeline do
         end
       end
 
-      it 'accesses the loggers log' do
+      it 'executes the callback' do
         expect(subject.execute('getsafe')).to eq('getsafe => status: success')
       end
     end
@@ -258,6 +295,10 @@ RSpec.describe NxtPipeline do
     it 'executes the steps' do
       expect(subject.execute('hanna')).to eq('H_A_N_N_A_H_A_N_N_A')
     end
+
+    it 'assigns the correct types' do
+      expect(subject.steps.map(&:type)).to eq(%i[service other service])
+    end
   end
 
   context 'default step' do
@@ -274,6 +315,11 @@ RSpec.describe NxtPipeline do
 
     it 'executes the steps' do
       expect(subject.execute('hanna')).to eq('H_A_N_N_A')
+    end
+
+    it 'assigns the type of the default constructor to the steps' do
+      subject.execute('hanna')
+      expect(subject.steps.map(&:type)).to all(eq(:proc))
     end
 
     context 'when defined multiple times' do
@@ -312,7 +358,21 @@ RSpec.describe NxtPipeline do
 
     it 'logs the steps' do
       subject.execute('hanna')
-      expect(subject.logger.log).to eq(:inline => :success, :second_step => :success)
+      # fallback to type :inline for inline constructors without type
+      expect(subject.logger.log).to eq(inline: :success, second_step: :success)
+    end
+
+    it 'logs the result for each step' do
+      subject.execute('hanna')
+
+      expect(subject.steps.find { |s| s.type?(:inline) }.result).to eq('HANNA')
+      expect(subject.steps.find { |s| s.type?(:second_step) }.result).to eq('H_A_N_N_A')
+    end
+
+    context 'when trying to define the type :inline' do
+      it 'raises an error' do
+
+      end
     end
   end
 
@@ -345,6 +405,49 @@ RSpec.describe NxtPipeline do
 
     it 'can access the methods in the scope' do
       expect(subject).to eq('HANNA')
+    end
+  end
+
+  context 'logger' do
+    class CustomLogger
+      def call(step)
+        log << step.type
+      end
+
+      def log
+        @log ||= []
+      end
+    end
+
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.constructor(:adder) do |step, arg|
+          step.adder.call(arg)
+        end
+
+        pipeline.constructor(:multiplier) do |step, arg|
+          step.multiplier.call(arg)
+        end
+
+        pipeline.step :adder, adder: -> (arg) { arg + 1 }
+        pipeline.step :multiplier, multiplier: -> (arg) { arg * 2 }
+        pipeline.step :adder, adder: -> (arg) { arg + 2 }
+
+        pipeline.step do |_, arg|
+          arg * 3
+        end
+
+        pipeline.step :last_step do |_, arg|
+          arg - 5
+        end
+
+        pipeline.logger = CustomLogger.new
+      end
+    end
+
+    it 'logs the step with the customer logger' do
+      expect(subject.execute(5)).to eq(37)
+      expect(subject.logger.log).to eq(%i[adder multiplier adder inline last_step])
     end
   end
 

@@ -1,9 +1,10 @@
 module NxtPipeline
   class Step
-    def initialize(type, constructor, **opts)
+    def initialize(type, constructor, index, **opts)
       define_attr_readers(opts)
 
       @type = type
+      @index = index
       @result = nil
       @opts = opts
       @status = nil
@@ -11,7 +12,7 @@ module NxtPipeline
       @error = nil
     end
 
-    attr_reader :type, :result, :status, :error, :opts
+    attr_reader :type, :result, :status, :error, :opts, :index
 
     def execute(arg)
       self.result = constructor.call(self, arg)
@@ -25,6 +26,10 @@ module NxtPipeline
 
     def to_s
       "#{opts.merge(type: type)}"
+    end
+
+    def type?(potential_type)
+      type.to_sym == potential_type.to_sym
     end
 
     private
