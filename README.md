@@ -113,6 +113,17 @@ an interface to it's type, options, status (:success, :skipped, :failed), result
 
 ```
 pipeline.steps.first 
+# will give you something like this:
+
+#<NxtPipeline::Step:0x00007f83eb399448
+ @constructor=
+  #<Proc:0x00007f83eb399498@/Users/andy/workspace/nxt_pipeline/spec/pipeline_spec.rb:467>,
+ @error=nil,
+ @index=0,
+ @opts={:to_s=>:transformer, :method=>:upcase},
+ @result=nil,
+ @status=nil,
+ @type=:transformer> 
 ``` 
 
 ### Error callbacks
