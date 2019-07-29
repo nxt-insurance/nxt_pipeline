@@ -6,6 +6,7 @@
 /pkg/
 /spec/reports/
 /tmp/
+vendor/cache/
 .idea/
 
 # rspec failure tracking
