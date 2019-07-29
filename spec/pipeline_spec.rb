@@ -237,21 +237,31 @@ RSpec.describe NxtPipeline do
     context 'when a handler was configured not to halt the pipeline' do
       subject do
         NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.constructor(:error_test) do |step, arg|
-            step.raisor.call(arg)
+          pipeline.step :upcase do |_, arg|
+            arg.upcase
           end
 
-          pipeline.step :error_test, raisor: -> (error) { raise error }
-          pipeline.step :error_test, peacemaker: -> (error) { 'Second step does not raise an error' }
+          pipeline.step :raisor do |_, arg|
+            raise ArgumentError
+          end
 
-          pipeline.on_error StandardError, halt_on_error: false do |step, arg, error|
+          pipeline.step :reverse do |_, arg|
+            arg.reverse
+          end
+
+          pipeline.on_error ArgumentError, halt_on_error: false do |step, arg, error|
             'Error handler which does not halt the pipeline'
           end
         end
       end
 
       it 'executes both steps' do
-        expect(subject.execute(StandardError)).to eq('Error handler which does not halt the pipeline')
+        expect(subject.execute('hello')).to eq('OLLEH')
+        expect(subject.logger.log).to eq(
+          upcase: :success,
+          raisor: :failed,
+          reverse: :success
+        )
       end
     end
   end
