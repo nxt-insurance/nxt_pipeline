@@ -144,6 +144,11 @@ NxtPipeline::Pipeline.new do |p|
     # First matching error callback will be executed!
   end
   
+  p.on_errors YetAnotherError, halt_on_error: false do |step, arg, error|
+    # After executing the callback the pipeline will not halt but continue to
+    # execute the next steps.
+  end
+  
   p.on_errors do |step, arg, error|
     # This will match all errors inheriting from StandardError
   end
