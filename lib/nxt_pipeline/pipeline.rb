@@ -72,11 +72,19 @@ module NxtPipeline
 
       result = steps.inject(arg) do |argument, step|
         execute_step(step, argument)
+      rescue StandardError => error
+        callback = find_error_callback(error)
+        raise unless callback && callback.continue_after_error?
+        handle_step_error(error)
       end
 
       after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
       result
     rescue StandardError => error
+      handle_step_error(error)
+    end
+
+    def handle_step_error(error)
       log_step(current_step)
       callback = find_error_callback(error)
 
@@ -85,8 +93,8 @@ module NxtPipeline
       callback.call(current_step, current_arg, error)
     end
 
-    def on_errors(*errors, &callback)
-      error_callbacks << ErrorCallback.new(errors, callback)
+    def on_errors(*errors, halt_on_error: true, &callback)
+      error_callbacks << ErrorCallback.new(errors, halt_on_error, callback)
     end
 
     alias :on_error :on_errors
