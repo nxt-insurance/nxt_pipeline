@@ -89,7 +89,7 @@ pipeline.execute('initial argument')
 
 # Or run the steps directly using block syntax
 
-pipeline.execute do |p|
+pipeline.execute('initial argument') do |p|
   p.step :service, service_class: MyServiceClass, to_s: 'First step'
   p.step :service, service_class: MyOtherServiceClass, to_s: 'Second step'
   p.step :job, job_class: MyJobClass # to_s is optional
@@ -125,6 +125,19 @@ pipeline.steps.first
  @status=nil,
  @type=:transformer> 
 ``` 
+
+### Guard clauses
+
+You can also define guard clauses that take a proc to prevent the execution of a step.
+When the guard takes an argument the step argument is yielded.  
+
+ ```ruby
+ pipeline.execute('initial argument') do |p|
+   p.step :service, service_class: MyServiceClass, if: -> (arg) { arg == 'initial argument' }
+   p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
+ end
+ 
+ ```
 
 ### Error callbacks
 
