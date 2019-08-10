@@ -187,6 +187,10 @@ end
 
 Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
 
+## Topics
+- Step orchestration (chainable steps)
+- Halting steps (probably already solved)
+- Removing / Mocking steps
 
 ## Development
 
