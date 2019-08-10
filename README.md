@@ -191,6 +191,8 @@ Note that the `after_execute` callback will not be called, when an error is rais
 - Step orchestration (chainable steps)
 - Halting steps (probably already solved)
 - Removing / Mocking steps
+- Constructors should take arg as first and step as second arg
+- Constructors should accept :to_s option 
 
 ## Development
 

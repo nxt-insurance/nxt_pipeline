@@ -4,6 +4,7 @@ require 'nxt_pipeline/logger'
 require 'nxt_pipeline/pipeline'
 require 'nxt_pipeline/step'
 require 'nxt_pipeline/error_callback'
+require 'nxt_pipeline/dsl'
 
 module NxtPipeline
 end
