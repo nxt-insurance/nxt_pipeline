@@ -204,7 +204,7 @@ class MyAwesomeClass
     end
     
     p.on_error MyCustomError do |step, arg, error|
-      # execute a pipeline simply by fetching it and calling execute on it as you would normally
+      # nesting pipelines also works
       pipeline(:error).execute(error)
     end
   end
@@ -213,6 +213,11 @@ class MyAwesomeClass
     p.step do |_, error|
       error # do something here
     end
+  end
+  
+  def call(arg)
+    # execute a pipeline simply by fetching it and calling execute on it as you would normally
+    pipeline(:execution).execute(arg)
   end
 end
 ```
