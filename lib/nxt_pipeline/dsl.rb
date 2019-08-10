@@ -5,7 +5,7 @@ module NxtPipeline
         name = name.to_sym
 
         if block_given?
-          pipeline_registry.key?(name) && raise_already_registered_error(name)
+          raise_already_registered_error(name) if pipeline_registry.key?(name)
           pipeline_registry[name] = block
         else
           config = pipeline_registry.fetch(name) { raise KeyError, "No pipeline #{name} registered"}

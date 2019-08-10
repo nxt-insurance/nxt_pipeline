@@ -6,8 +6,14 @@ module NxtPipeline
       @opts = opts
     end
 
-    attr_reader :block, :opts
+    attr_reader :opts
 
-    delegate_missing_to :block
+    def call(*args, **opts)
+      block.call(*args, **opts)
+    end
+
+    private
+
+    attr_reader :block
   end
 end
