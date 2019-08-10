@@ -19,7 +19,7 @@ module NxtPipeline
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
-      if unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
+      if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
         self.result = constructor.call(self, arg)
       end
 
@@ -45,15 +45,15 @@ module NxtPipeline
     attr_reader :constructor
 
     def if_guard
-      opts.fetch(:if) { no_guard }
+      opts.fetch(:if) { guard(true) }
     end
 
     def unless_guard
-      opts.fetch(:unless) { no_guard }
+      opts.fetch(:unless) { guard(false) }
     end
 
-    def no_guard
-      -> { true }
+    def guard(result)
+      -> { result }
     end
 
     def define_attr_readers(opts)
