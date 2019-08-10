@@ -32,8 +32,9 @@ by the step yielded to the constructor.
 ```ruby
 pipeline = NxtPipeline::Pipeline.new do |p|
   # Add a named constructor that will be used to execute your steps later
-  # All options that you pass in your step will be available through accessors in your constructor 
-  p.constructor(:service, default: true) do |step, arg|
+  # All options that you pass in your step will be available through accessors in your constructor
+  # Specify a to_s proc that names your steps by default. You can later overwrite this for each step if needed. 
+  p.constructor(:service, default: true, to_s: -> (step) { step.service_class.to_s }) do |step, arg|
     step.service_class.new(options: arg).call
   end
   
@@ -187,12 +188,38 @@ end
 
 Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
 
+### DSL
+
+The gem also comes with an easy DSL to make pipeline handling in your code more convenient. 
+Simply include NxtPipeline::Dsl in your class:
+
+```ruby
+class MyAwesomeClass
+  include NxtPipeline::Dsl
+  
+  # register a pipeline with a name and a block
+  pipeline :execution do |p|
+    p.step do |_, arg|
+      arg.upcase
+    end
+    
+    p.on_error MyCustomError do |step, arg, error|
+      # execute a pipeline simply by fetching it and calling execute on it as you would normally
+      pipeline(:error).execute(error)
+    end
+  end
+  
+  pipeline :error do |p|
+    p.step do |_, error|
+      error # do something here
+    end
+  end
+end
+```
+
 ## Topics
 - Step orchestration (chainable steps)
-- Halting steps (probably already solved)
-- Removing / Mocking steps
-- Constructors should take arg as first and step as second arg
-- Constructors should accept :to_s option 
+- Constructors should take arg as first and step as second arg 
 
 ## Development
 

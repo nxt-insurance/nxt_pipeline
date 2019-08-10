@@ -51,6 +51,38 @@ RSpec.describe NxtPipeline::Dsl do
         }.to raise_error(KeyError, /Already registered a pipeline execution/)
       end
     end
+
+    context 'when pipelines are nested' do
+      subject do
+        Class.new do
+          include NxtPipeline::Dsl
+
+          pipeline :execution do |p|
+            p.step :raisor do |step, arg|
+              raise StandardError, arg
+            end
+
+            p.on_error StandardError do |step, arg, error|
+              pipeline(:error).execute(error: error, original_arg: arg)
+            end
+          end
+
+          pipeline :error do |p|
+            p.step do |step, arg|
+              "Ups, an error occurred: #{arg[:error].class}. Original argument was: #{arg[:original_arg]}"
+            end
+          end
+
+          def call(arg)
+            pipeline(:execution).execute(arg)
+          end
+        end
+      end
+
+      it 'calls the pipelines in the correct order' do
+        expect(subject.new.call('Fire')).to eq('Ups, an error occurred: StandardError. Original argument was: Fire')
+      end
+    end
   end
 
   describe '.pipeline!' do

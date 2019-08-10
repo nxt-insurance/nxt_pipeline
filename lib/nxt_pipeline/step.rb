@@ -9,6 +9,9 @@ module NxtPipeline
       @opts = opts
       @status = nil
       @constructor = constructor
+      constructor_options = constructor.opts.with_indifferent_access
+      to_s = constructor_options[:to_s]
+      @to_s = to_s.respond_to?(:call) ? to_s.call(self) : to_s
       @error = nil
     end
 
@@ -32,7 +35,7 @@ module NxtPipeline
     end
 
     def to_s
-      "#{opts.merge(type: type)}"
+      @to_s || "#{opts.merge(type: type)}"
     end
 
     def type?(potential_type)

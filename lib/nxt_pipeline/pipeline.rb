@@ -25,7 +25,7 @@ module NxtPipeline
       name = name.to_sym
       raise StandardError, "Already registered step :#{name}" if registry[name]
 
-      registry[name] = constructor
+      registry[name] = Constructor.new(name, opts, constructor)
 
       return unless opts.fetch(:default, false)
       set_default_constructor(name)
@@ -48,7 +48,7 @@ module NxtPipeline
         # fall back to :inline if no type is given
         type ||= :inline
         opts.reverse_merge!(to_s: type)
-        block
+        Constructor.new(type, opts, block)
       else
         if type
           raise_reserved_type_inline_error if type == :inline

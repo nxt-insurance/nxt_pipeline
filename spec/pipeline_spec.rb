@@ -96,21 +96,13 @@ RSpec.describe NxtPipeline do
   context 'when there is an error' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.constructor(:service) do |step, arg|
+        pipeline.constructor(:service, to_s: -> (step) { step.service_class.to_s }) do |step, arg|
           step.service_class.new(arg).call
         end
 
-        pipeline.step :service,
-                      service_class: StepOne,
-                      to_s: 'StepOne'
-
-        pipeline.step :service,
-                      service_class: StepSkipped,
-                      to_s: 'StepSkipped'
-
-        pipeline.step :service,
-                      service_class: StepWithArgumentError,
-                      to_s: 'StepWithArgumentError'
+        pipeline.step :service, service_class: StepOne
+        pipeline.step :service, service_class: StepSkipped, to_s: 'This step was skipped'
+        pipeline.step :service, service_class: StepWithArgumentError
 
         pipeline.on_error ArgumentError do |step, arg, error|
           "Step #{step} was called with #{arg} and failed with #{error.class}"
@@ -131,7 +123,7 @@ RSpec.describe NxtPipeline do
 
       expect(subject.logger.log).to eq(
         "StepOne" => :success,
-        "StepSkipped" => :skipped,
+        "This step was skipped" => :skipped,
         "StepWithArgumentError" => :failed
       )
     end
