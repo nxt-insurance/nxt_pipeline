@@ -5,13 +5,12 @@ module NxtPipeline
 
       @type = type
       @index = index
-      @result = nil
       @opts = opts
-      @status = nil
       @constructor = constructor
-      constructor_options = constructor.opts.with_indifferent_access
-      to_s = constructor_options[:to_s]
-      @to_s = to_s.respond_to?(:call) ? to_s.call(self) : to_s
+      @to_s = to_s_from_constructor
+
+      @status = nil
+      @result = nil
       @error = nil
     end
 
@@ -46,6 +45,12 @@ module NxtPipeline
 
     attr_writer :result, :status, :error
     attr_reader :constructor
+
+    def to_s_from_constructor
+      constructor_options = constructor.opts.with_indifferent_access
+      to_s = constructor_options[:to_s]
+      to_s.respond_to?(:call) ? to_s.call(self) : to_s
+    end
 
     def if_guard
       opts.fetch(:if) { guard(true) }
