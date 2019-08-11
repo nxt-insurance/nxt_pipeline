@@ -1,11 +1,11 @@
 RSpec.describe NxtPipeline::Pipeline do
   class StepOne
-    def initialize(opts)
-      @opts = opts
+    def initialize(word:)
+      @word = word
     end
 
     def call
-      @opts.upcase
+      @word.upcase
     end
 
     def to_s
@@ -15,8 +15,8 @@ RSpec.describe NxtPipeline::Pipeline do
 
   subject do
     NxtPipeline::Pipeline.new do |pipeline|
-      pipeline.constructor(:service, default: true) do |step, arg|
-        step.service_class.new(arg).call
+      pipeline.constructor(:service, default: true) do |step, **opts|
+        step.service_class.new(**opts).call
       end
     end
   end
@@ -25,7 +25,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes no arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute('hanna') do |p|
+          subject.execute(word: 'hanna') do |p|
             p.step service_class: StepOne, if: -> { false }
           end
 
@@ -37,8 +37,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes a single arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(false) do |p|
-            p.step service_class: StepOne, if: -> (arg) { arg }
+          subject.execute(word: false) do |p|
+            p.step service_class: StepOne, if: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -49,8 +49,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes two arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(false) do |p|
-            p.step service_class: StepOne, if: -> (arg, step) { step.is_a?(NxtPipeline::Step) && arg }
+          subject.execute(word: false) do |p|
+            p.step service_class: StepOne, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -63,7 +63,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes no arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute('hanna') do |p|
+          subject.execute(word: 'hanna') do |p|
             p.step service_class: StepOne, unless: -> { true }
           end
 
@@ -75,8 +75,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes a single arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(true) do |p|
-            p.step service_class: StepOne, unless: -> (arg) { arg }
+          subject.execute(word: true) do |p|
+            p.step service_class: StepOne, unless: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -87,8 +87,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes two arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(true) do |p|
-            p.step service_class: StepOne, unless: -> (arg, step) { step.is_a?(NxtPipeline::Step) && arg }
+          subject.execute(word: true) do |p|
+            p.step service_class: StepOne, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)

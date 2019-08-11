@@ -16,13 +16,13 @@ module NxtPipeline
 
     attr_reader :type, :result, :status, :error, :opts, :index
 
-    def execute(arg)
-      guard_args = [arg, self]
+    def execute(**opts)
+      guard_args = [opts, self]
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        self.result = constructor.call(self, arg)
+        self.result = constructor.call(self, **opts)
       end
 
       set_status

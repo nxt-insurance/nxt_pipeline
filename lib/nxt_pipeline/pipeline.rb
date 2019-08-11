@@ -1,7 +1,7 @@
 module NxtPipeline
   class Pipeline
-    def self.execute(opts, &block)
-      new(&block).execute(opts)
+    def self.execute(**opts, &block)
+      new(&block).execute(**opts)
     end
 
     def initialize(&block)
@@ -64,19 +64,19 @@ module NxtPipeline
       steps << Step.new(type, constructor, steps.count, **opts)
     end
 
-    def execute(arg, &block)
+    def execute(**opts, &block)
       reset
 
       configure(&block) if block_given?
-      before_execute_callback.call(self, arg) if before_execute_callback.respond_to?(:call)
+      before_execute_callback.call(self, opts) if before_execute_callback.respond_to?(:call)
 
-      result = steps.inject(arg) do |argument, step|
-        execute_step(step, argument)
+      result = steps.inject(opts) do |options, step|
+        execute_step(step, **options)
       rescue StandardError => error
         callback = find_error_callback(error)
         raise unless callback && callback.continue_after_error?
         handle_step_error(error)
-        argument
+        options
       end
 
       after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
@@ -123,12 +123,12 @@ module NxtPipeline
       @default_constructor ||= registry[default_constructor_name.to_sym]
     end
 
-    def execute_step(step, arg)
+    def execute_step(step, **opts)
       self.current_step = step
-      self.current_arg = arg
-      result = step.execute(arg)
+      self.current_arg = opts
+      result = step.execute(**opts)
       log_step(step)
-      result || arg
+      result || opts
     end
 
     def find_error_callback(error)
