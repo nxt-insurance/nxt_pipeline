@@ -34,25 +34,28 @@ pipeline = NxtPipeline::Pipeline.new do |p|
   # Add a named constructor that will be used to execute your steps later
   # All options that you pass in your step will be available through accessors in your constructor
   # Specify a to_s proc that names your steps by default. You can later overwrite this for each step if needed. 
-  p.constructor(:service, default: true, to_s: -> (step) { step.service_class.to_s }) do |step, arg|
-    step.service_class.new(options: arg).call
+  p.constructor(:service, default: true, to_s: -> (step) { step.service_class.to_s }) do |step, arg:|
+    result = step.service_class.new(options: arg).call
+    result && { arg: result }
   end
   
-  p.constructor(:job) do |step, arg|
-    step.job_class.perform_later(*arg) && arg
+  p.constructor(:job) do |step, arg:|
+    step.job_class.perform_later(*arg) && { arg: arg }
   end
 end
 
 # Once a pipeline was created you can still configure it 
-pipeline.constructor(:call) do |step, arg|
-  step.caller.new(arg).call
+pipeline.constructor(:call) do |step, arg:|
+  result = step.caller.new(arg).call
+  result && { arg: result }
 end
 
 # same with block syntax 
 # You can use this to split up execution from configuration  
 pipeline.configure do |p|
- p.constructor(:call) do |step, arg|
-   step.caller.new(arg).call
+ p.constructor(:call) do |step, arg:|
+   result = step.caller.new(arg).call
+   result && { arg: result }
  end
 end
 ```
@@ -68,11 +71,11 @@ pipeline.step service_class: MyOtherServiceClass, to_s: 'Second step'
 pipeline.step :job, job_class: MyJobClass # to_s is optional
 pipeline.step :job, job_class: MyOtherJobClass
 
-pipeline.step :step_name_for_better_log do |_, arg|
+pipeline.step :step_name_for_better_log do |_, arg:|
   # ...
 end
 
-pipeline.step to_s: 'This is the same as above' do |step, arg|
+pipeline.step to_s: 'This is the same as above' do |step, arg:|
   # ... step.to_s => 'This is the same as above'
 end
 ```
@@ -103,8 +106,8 @@ You can also directly execute a pipeline with:
 
 ```ruby
 NxtPipeline::Pipeline.execute('initial argument') do |p|
-  p.step do |_, arg|
-    arg.upcase
+  p.step do |_, arg:|
+    { arg: arg.upcase }
   end
 end
 ``` 
@@ -134,7 +137,7 @@ When the guard takes an argument the step argument is yielded.
 
  ```ruby
  pipeline.execute('initial argument') do |p|
-   p.step :service, service_class: MyServiceClass, if: -> (arg) { arg == 'initial argument' }
+   p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
    p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
  end
  
@@ -146,24 +149,24 @@ Apart from defining constructors and steps you can also define error callbacks.
 
 ```ruby
 NxtPipeline::Pipeline.new do |p|
-  p.step do |_, arg|
-    arg.upcase
+  p.step do |_, arg:|
+    { arg: arg.upcase }
   end
   
-  p.on_error MyCustomError do |step, arg, error|
+  p.on_error MyCustomError do |step, opts, error|
     # First matching error callback will be executed!
   end
   
-  p.on_errors ArgumentError, KeyError do |step, arg, error|
+  p.on_errors ArgumentError, KeyError do |step, opts, error|
     # First matching error callback will be executed!
   end
   
-  p.on_errors YetAnotherError, halt_on_error: false do |step, arg, error|
+  p.on_errors YetAnotherError, halt_on_error: false do |step, opts, error|
     # After executing the callback the pipeline will not halt but continue to
     # execute the next steps.
   end
   
-  p.on_errors do |step, arg, error|
+  p.on_errors do |step, opts, error|
     # This will match all errors inheriting from StandardError
   end
 end
@@ -175,12 +178,12 @@ You can also define callbacks that run before and after the `#execute` action. B
 
 ```ruby
 NxtPipeline::Pipeline.new do |p|
-  p.before_execute do |pipeline, arg|
+  p.before_execute do |pipeline, arg:|
     # Will be called from within #execute before entering the first step
     # After any configure block though!  
   end
   
-  p.after_execute do |pipeline, arg|
+  p.after_execute do |pipeline, arg:|
     # Will be called from within #execute after executing last step
   end
 end
@@ -199,11 +202,11 @@ class MyAwesomeClass
   
   # register a pipeline with a name and a block
   pipeline :execution do |p|
-    p.step do |_, arg|
-      arg.upcase
+    p.step do |_, arg:|
+      { arg: arg.upcase }
     end
     
-    p.on_error MyCustomError do |step, arg, error|
+    p.on_error MyCustomError do |step, opts, error|
       # nesting pipelines also works
       pipeline(:error).execute(error)
     end
@@ -217,7 +220,7 @@ class MyAwesomeClass
   
   def call(arg)
     # execute a pipeline simply by fetching it and calling execute on it as you would normally
-    pipeline(:execution).execute(arg)
+    pipeline(:execution).execute(arg: arg)
   end
 end
 ```
