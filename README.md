@@ -33,8 +33,9 @@ by the step yielded to the constructor.
 pipeline = NxtPipeline::Pipeline.new do |p|
   # Add a named constructor that will be used to execute your steps later
   # All options that you pass in your step will be available through accessors in your constructor
-  # Specify a to_s proc that names your steps by default. You can later overwrite this for each step if needed. 
-  p.constructor(:service, default: true, to_s: -> (step) { step.service_class.to_s }) do |step, arg:|
+  # You can call :to_s on a step to set it by default. You can later overwrite at execution for each step if needed. 
+  p.constructor(:service, default: true) do |step, arg:|
+    step.to_s = step.service_class.to_s
     result = step.service_class.new(options: arg).call
     result && { arg: result }
   end
@@ -201,11 +202,27 @@ class MyAwesomeClass
   include NxtPipeline::Dsl
   
   # register a pipeline with a name and a block
+  pipeline :validation do |p|
+    pipeline.constructor(:validate) do |step, arg:|
+      result = step.validator.call(arg: arg)
+      result && { arg: result }
+    end
+    
+    pipeline.step :validate, validator: NameValidator
+    pipeline.step :validate, validator: AdressValidator
+    pipeline.step :validate, validator: BankAccountValidator
+    pipeline.step :validate, validator: PhoneNumberValidator
+    
+    p.on_error ValidationError do |step, opts, error|
+      # ...
+    end
+  end
+  
   pipeline :execution do |p|
     p.step do |_, arg:|
       { arg: arg.upcase }
     end
-    
+      
     p.on_error MyCustomError do |step, opts, error|
       # nesting pipelines also works
       pipeline(:error).execute(error)
