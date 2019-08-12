@@ -87,7 +87,7 @@ RSpec.describe NxtPipeline do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:service) do |step, arg:|
-          step.to_s = step.service_class.to_s
+          step.name = step.service_class.to_s
           result = step.service_class.new(word: arg).call
           result && { arg: result }
         end
