@@ -30,6 +30,7 @@ RSpec.describe NxtPipeline do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:service) do |step, word:|
+          step.to_s = step.service_class.name
           result = step.service_class.new(word: word).call
           result && { word: result }
         end
@@ -62,10 +63,7 @@ RSpec.describe NxtPipeline do
     it 'logs the steps' do
       subject.execute(word: 'hanna')
 
-      expect(subject.logger.log).to eq(
-        '{:service_class=>StepOne, :type=>:service}' => :success,
-        '{:service_class=>StepSkipped, :type=>:service}' => :skipped
-      )
+      expect(subject.logger.log).to eq({"StepOne"=>:success, "StepSkipped"=>:skipped})
     end
   end
 
@@ -88,7 +86,8 @@ RSpec.describe NxtPipeline do
   context 'when there is an error' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.constructor(:service, to_s: -> (step) { step.service_class.to_s }) do |step, arg:|
+        pipeline.constructor(:service) do |step, arg:|
+          step.to_s = step.service_class.to_s
           result = step.service_class.new(word: arg).call
           result && { arg: result }
         end

@@ -20,7 +20,6 @@ module NxtPipeline
 
     attr_accessor :logger, :steps
 
-    # register steps with name and block
     def constructor(name, **opts, &constructor)
       name = name.to_sym
       raise StandardError, "Already registered step :#{name}" if registry[name]

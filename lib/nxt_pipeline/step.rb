@@ -7,7 +7,7 @@ module NxtPipeline
       @index = index
       @opts = opts
       @constructor = constructor
-      @to_s = to_s_from_constructor
+      @to_s = "#{opts.merge(type: type)}"
 
       @status = nil
       @result = nil
@@ -15,6 +15,7 @@ module NxtPipeline
     end
 
     attr_reader :type, :result, :status, :error, :opts, :index
+    attr_accessor :to_s
 
     def execute(**opts)
       guard_args = [opts, self]
@@ -33,10 +34,6 @@ module NxtPipeline
       raise
     end
 
-    def to_s
-      @to_s || "#{opts.merge(type: type)}"
-    end
-
     def type?(potential_type)
       type.to_sym == potential_type.to_sym
     end
@@ -45,12 +42,6 @@ module NxtPipeline
 
     attr_writer :result, :status, :error
     attr_reader :constructor
-
-    def to_s_from_constructor
-      constructor_options = constructor.opts.with_indifferent_access
-      to_s = constructor_options[:to_s]
-      to_s.respond_to?(:call) ? to_s.call(self) : to_s
-    end
 
     def if_guard
       opts.fetch(:if) { guard(true) }
