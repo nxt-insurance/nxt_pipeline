@@ -96,11 +96,11 @@ RSpec.describe NxtPipeline do
         pipeline.step :service, service_class: StepSkipped, to_s: 'This step was skipped'
         pipeline.step :service, service_class: StepWithArgumentError
 
-        pipeline.on_error ArgumentError do |step, arg, error|
-          "Step #{step} was called with #{arg} and failed with #{error.class}"
+        pipeline.on_error ArgumentError do |step, opts, error|
+          "Step #{step} was called with #{opts} and failed with #{error.class}"
         end
 
-        pipeline.on_error do |step, arg, error|
+        pipeline.on_error do |step, opts, error|
           raise error
         end
       end
@@ -142,15 +142,15 @@ RSpec.describe NxtPipeline do
 
         pipeline.step :error_test, raisor: -> (error) { raise error }
 
-        pipeline.on_error OtherCustomError do |step, arg, error|
+        pipeline.on_error OtherCustomError do |step, opts, error|
           'other_custom_error callback fired'
         end
 
-        pipeline.on_error CustomError do |step, arg, error|
+        pipeline.on_error CustomError do |step, opts, error|
           'custom_error callback fired'
         end
 
-        pipeline.on_error do |step, arg, error|
+        pipeline.on_error do |step, opts, error|
           raise error
         end
       end
@@ -201,11 +201,11 @@ RSpec.describe NxtPipeline do
 
           pipeline.step :error_test, raisor: -> (error) { raise error }
 
-          pipeline.on_errors CustomError, OtherCustomError do |step, arg, error|
+          pipeline.on_errors CustomError, OtherCustomError do |step, opts, error|
             'common callback fired'
           end
 
-          pipeline.on_error do |step, arg, error|
+          pipeline.on_error do |step, opts, error|
             raise error
           end
         end
@@ -233,7 +233,7 @@ RSpec.describe NxtPipeline do
             { word: word.reverse }
           end
 
-          pipeline.on_error ArgumentError, halt_on_error: false do |step, arg, error|
+          pipeline.on_error ArgumentError, halt_on_error: false do |step, opts, error|
             'Error handler which does not halt the pipeline'
           end
         end
@@ -294,16 +294,18 @@ RSpec.describe NxtPipeline do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:service) do |step, arg:|
-          { arg: step.transformer.call(arg) }
+          result = step.transformer.call(arg: arg)
+          result && { arg: result }
         end
 
         pipeline.constructor(:other) do |step, arg:|
-          { arg: step.splitter.call(arg) }
+          result = step.splitter.call(arg: arg)
+          result && { arg: result }
         end
 
-        pipeline.step :service, transformer: -> (arg) { arg.upcase }
-        pipeline.step :other, splitter: -> (arg) { arg.chars.join('_') }
-        pipeline.step :service, transformer: -> (arg) { (arg.chars + %w[_] + arg.chars).join }
+        pipeline.step :service, transformer: -> (arg:) { arg.upcase }
+        pipeline.step :other, splitter: -> (arg:) { arg.chars.join('_') }
+        pipeline.step :service, transformer: -> (arg:) { (arg.chars + %w[_] + arg.chars).join }
       end
     end
 
