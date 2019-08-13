@@ -18,6 +18,7 @@ module NxtPipeline
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
+    alias_method :name, :to_s
 
     def execute(**opts)
       guard_args = [opts, self]
