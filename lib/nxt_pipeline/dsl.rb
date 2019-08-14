@@ -1,27 +1,28 @@
 module NxtPipeline
   module Dsl
     module ClassMethods
-      def pipeline(name = :default, &block)
+      def pipeline(name = :default, parent = NxtPipeline::Pipeline, &block)
         name = name.to_sym
 
         if block_given?
           raise_already_registered_error(name) if pipeline_registry.key?(name)
-          pipeline_registry[name] = block
+          register_pipeline(name, block, parent)
         else
-          config = pipeline_registry.fetch(name) { raise KeyError, "No pipeline #{name} registered"}
-          NxtPipeline::Pipeline.new(&config)
+          entry = pipeline_registry.fetch(name) { raise KeyError, "No pipeline #{name} registered"}
+          config = entry.fetch(:config)
+          entry.fetch(:parent).send(:new, &config)
         end
       end
 
-      def pipeline!(name, &block)
+      def pipeline!(name, parent = NxtPipeline::Pipeline, &block)
         raise ArgumentError, "No block given!" unless block_given?
-        pipeline_registry[name] = block
+        register_pipeline(name, block, parent)
       end
 
       private
 
       def inherited(child)
-        child.instance_variable_set(:@pipeline_registry, pipeline_registry.clone)
+        child.instance_variable_set(:@pipeline_registry, pipeline_registry.deep_dup)
       end
 
       def raise_already_registered_error(name)
@@ -30,6 +31,10 @@ module NxtPipeline
 
       def pipeline_registry
         @pipeline_registry ||= ActiveSupport::HashWithIndifferentAccess.new
+      end
+
+      def register_pipeline(name, block, parent)
+        pipeline_registry[name] = { config: block, parent: parent }
       end
     end
 
