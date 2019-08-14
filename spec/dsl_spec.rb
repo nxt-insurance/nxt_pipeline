@@ -28,14 +28,12 @@ RSpec.describe NxtPipeline::Dsl do
   describe '.pipeline' do
     context 'when no name is given' do
       it 'registers a default pipeline' do
-        expect(subject.pipeline.execute(arg: 'Raphael Lütfi Nilsom')).to eq('Default: Raphael Lütfi Nilsom')
         expect(subject.new.pipeline.execute(arg: 'Raphael Lütfi Nilsom')).to eq('Default: Raphael Lütfi Nilsom')
       end
     end
 
     context 'when a name was given' do
       it 'registers a pipeline for that name' do
-        expect(subject.pipeline(:execution).execute(arg: 'Raphael Lütfi Nilsom')).to eq('Execution: Raphael Lütfi Nilsom')
         expect(subject.new.pipeline(:execution).execute(arg: 'Raphael Lütfi Nilsom')).to eq('Execution: Raphael Lütfi Nilsom')
       end
     end
@@ -90,14 +88,17 @@ RSpec.describe NxtPipeline::Dsl do
       Class.new(some_class) do
         pipeline! :default do |p|
           p.step do |step, arg:|
-            "Hijacked: #{arg}"
+            call_me(arg)
           end
+        end
+
+        def call_me(arg)
+          "Hijacked: #{arg}"
         end
       end
     end
 
     it 'allows to overwrite already configured pipelines' do
-      expect(subject.pipeline(:default).execute(arg: 'Raphael Lütfi Nilsom')).to eq('Hijacked: Raphael Lütfi Nilsom')
       expect(subject.new.pipeline(:default).execute(arg: 'Raphael Lütfi Nilsom')).to eq('Hijacked: Raphael Lütfi Nilsom')
     end
   end

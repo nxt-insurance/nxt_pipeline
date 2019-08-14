@@ -3,15 +3,9 @@ module NxtPipeline
     module ClassMethods
       def pipeline(name = :default, parent = NxtPipeline::Pipeline, &block)
         name = name.to_sym
-
-        if block_given?
-          raise_already_registered_error(name) if pipeline_registry.key?(name)
-          register_pipeline(name, block, parent)
-        else
-          entry = pipeline_registry.fetch(name) { raise KeyError, "No pipeline #{name} registered"}
-          config = entry.fetch(:config)
-          entry.fetch(:parent).send(:new, &config)
-        end
+        raise ArgumentError, "No block given!" unless block_given?
+        raise_already_registered_error(name) if pipeline_registry.key?(name)
+        register_pipeline(name, block, parent)
       end
 
       def pipeline!(name, parent = NxtPipeline::Pipeline, &block)
@@ -42,7 +36,12 @@ module NxtPipeline
       base.extend(ClassMethods)
 
       def pipeline(name = :default)
-        self.class.pipeline(name)
+        registry = self.class.send(:pipeline_registry)
+        entry = registry.fetch(name) { raise KeyError, "No pipeline #{name} registered"}
+        config = entry.fetch(:config)
+        pipeline = entry.fetch(:parent).new
+        instance_exec(pipeline, &config)
+        pipeline
       end
     end
   end
