@@ -20,13 +20,13 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**opts)
-      guard_args = [opts, self]
+    def execute(arg)
+      guard_args = [arg, self]
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        self.result = constructor.call(self, **opts)
+        self.result = constructor.call(self, arg)
       end
 
       set_status
