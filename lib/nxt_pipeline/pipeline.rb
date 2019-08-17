@@ -59,7 +59,7 @@ module NxtPipeline
             type ||= default_constructor_name
             default_constructor
           else
-            (raise StandardError, 'No default step registered')
+            (raise StandardError, "Could not resolve type: #{type}")
           end
         end
       end
