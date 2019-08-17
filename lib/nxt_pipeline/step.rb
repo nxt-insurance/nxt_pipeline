@@ -38,7 +38,7 @@ module NxtPipeline
     end
 
     def type?(potential_type)
-      type.to_sym == potential_type.to_sym
+      constructor.resolve_type(potential_type)
     end
 
     private
