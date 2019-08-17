@@ -3,8 +3,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'but options are mapped' do
       subject do
         NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.constructor(:proc, default: true) do |step, arg|
-            step.proc.call(arg, mapped_options)
+          pipeline.constructor(:proc, default: true) do |step, opts|
+            step.proc.call(opts, mapped_options)
           end
 
           pipeline.step :proc,
@@ -14,10 +14,10 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'raises an ArgumentError' do
-        expect { 
-          subject.execute(original: 'options') 
+        expect {
+          subject.execute(original: 'options')
         }.to raise_error(
-          ArgumentError, 
+          ArgumentError,
           "Constructor takes only 2 arguments instead of 3 => step, changeset, mapped_options"
         )
       end
@@ -28,8 +28,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'and an options are mapped' do
       subject do
         NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.constructor(:proc, default: true) do |step, arg, mapped_options|
-            step.proc.call(arg, mapped_options)
+          pipeline.constructor(:proc, default: true) do |step, opts, mapped_options|
+            step.proc.call(opts, mapped_options)
           end
 
           pipeline.step :proc,
@@ -46,8 +46,8 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'but no options are mapped' do
       subject do
         NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.constructor(:proc, default: true) do |step, arg, mapped_options|
-            step.proc.call(arg, mapped_options)
+          pipeline.constructor(:proc, default: true) do |step, opts, mapped_options|
+            step.proc.call(opts, mapped_options)
           end
 
           pipeline.step :proc, proc: ->(changeset, options) { changeset.merge(options) }

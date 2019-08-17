@@ -21,11 +21,12 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(arg)
+    def execute(**opts)
       mapper = options_mapper || default_options_mapper
-      mapped_options = mapper.call(arg)
+      mapped_options = mapper.call(opts)
 
-      guard_args = [arg, self]
+      guard_args = [opts, self]
+
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
@@ -34,7 +35,8 @@ module NxtPipeline
       end
 
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        constructor_args = [self, arg, mapped_options]
+
+        constructor_args = [self, opts, mapped_options]
         constructor_args = constructor_args.take(constructor.arity)
         self.result = constructor.call(*constructor_args) # here we could pass in the mapped options
       end
