@@ -37,6 +37,16 @@ module NxtPipeline
       raise
     end
 
+    def resolve_options(execution_options)
+      opts.each_with_object({}) do |(k, v), acc|
+        if v.respond_to?(:call)
+          acc[k] = v.call(execution_options)
+        else
+          acc[k] = v
+        end
+      end
+    end
+
     def type?(potential_type)
       constructor.resolve_type(potential_type)
     end
