@@ -20,7 +20,7 @@ RSpec.describe NxtPipeline::Pipeline do
           end
         end
 
-        pipeline.step StepOne
+        pipeline.step StepOne # TODO: Migrate type to option and make the current type the step.argument
         pipeline.step 'multiply'
         pipeline.step 'symbolize'
       end
