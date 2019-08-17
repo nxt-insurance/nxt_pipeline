@@ -8,6 +8,7 @@ module NxtPipeline
       @opts = opts
       @constructor = constructor
       @to_s = "#{opts.merge(type: type)}"
+      @options_mapper = opts[:map_options]
 
       @status = nil
       @result = nil
@@ -21,12 +22,21 @@ module NxtPipeline
     alias_method :name, :to_s
 
     def execute(arg)
+      mapper = options_mapper || default_options_mapper
+      mapped_options = mapper.call(arg)
+
       guard_args = [arg, self]
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
+      if options_mapper && constructor.arity < 3
+        raise ArgumentError, "Constructor takes only #{constructor.arity} arguments instead of 3 => step, changeset, mapped_options"
+      end
+
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        self.result = constructor.call(self, arg)
+        constructor_args = [self, arg, mapped_options]
+        constructor_args = constructor_args.take(constructor.arity)
+        self.result = constructor.call(*constructor_args) # here we could pass in the mapped options
       end
 
       set_status
@@ -54,7 +64,7 @@ module NxtPipeline
     private
 
     attr_writer :result, :status, :error
-    attr_reader :constructor
+    attr_reader :constructor, :options_mapper
 
     def if_guard
       opts.fetch(:if) { guard(true) }
@@ -78,6 +88,11 @@ module NxtPipeline
 
     def set_status
       self.status = result.present? ? :success : :skipped
+    end
+
+    def default_options_mapper
+      # returns an empty hash
+      ->(changeset) { {} }
     end
   end
 end

@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline do
+RSpec.describe NxtPipeline::Pipeline do
   class StepOne
     def initialize(opts)
       @opts = opts
