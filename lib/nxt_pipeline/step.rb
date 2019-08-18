@@ -13,9 +13,10 @@ module NxtPipeline
       @status = nil
       @result = nil
       @error = nil
+      @mapped_options = nil
     end
 
-    attr_reader :type, :result, :status, :error, :opts, :index
+    attr_reader :type, :result, :status, :error, :opts, :index, :mapped_options
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
@@ -23,20 +24,15 @@ module NxtPipeline
 
     def execute(**opts)
       mapper = options_mapper || default_options_mapper
-      mapped_options = mapper.call(opts)
+      self.mapped_options = mapper.call(opts)
 
       guard_args = [opts, self]
 
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
-      if options_mapper && constructor.arity < 3
-        raise ArgumentError, "Constructor takes only #{constructor.arity} arguments instead of 3 => step, changeset, mapped_options"
-      end
-
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-
-        constructor_args = [self, opts, mapped_options]
+        constructor_args = [self, opts]
         constructor_args = constructor_args.take(constructor.arity)
         self.result = constructor.call(*constructor_args) # here we could pass in the mapped options
       end
@@ -65,7 +61,7 @@ module NxtPipeline
 
     private
 
-    attr_writer :result, :status, :error
+    attr_writer :result, :status, :error, :mapped_options
     attr_reader :constructor, :options_mapper
 
     def if_guard
