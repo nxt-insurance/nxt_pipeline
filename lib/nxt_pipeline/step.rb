@@ -24,7 +24,8 @@ module NxtPipeline
 
     def execute(**opts)
       mapper = options_mapper || default_options_mapper
-      self.mapped_options = mapper.call(opts)
+      mapper_args = [opts, self].take(mapper.arity)
+      self.mapped_options = mapper.call(*mapper_args)
 
       guard_args = [opts, self]
 
