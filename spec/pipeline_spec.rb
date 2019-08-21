@@ -388,8 +388,8 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'logs the result for each step' do
       subject.execute(arg: 'hanna')
 
-      expect(subject.steps.find { |s| s.type?(:inline) }.result).to eq(arg: 'HANNA')
-      expect(subject.steps.find { |s| s.type?(:second_step) }.result).to eq(arg: 'H_A_N_N_A')
+      expect(subject.steps.find { |s| s.argument == :inline }.result).to eq(arg: 'HANNA')
+      expect(subject.steps.find { |s| s.argument == :second_step }.result).to eq(arg: 'H_A_N_N_A')
     end
 
     context 'when :to_s option was provided' do
