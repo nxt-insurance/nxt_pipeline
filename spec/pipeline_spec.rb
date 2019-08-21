@@ -442,7 +442,7 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'logger' do
     class CustomLogger
       def call(step)
-        log << step.type
+        log << step.argument
       end
 
       def log

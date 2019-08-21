@@ -1,13 +1,13 @@
 module NxtPipeline
   class Step
-    def initialize(type, constructor, index, **opts)
+    def initialize(argument, constructor, index, **opts)
       define_attr_readers(opts)
 
-      @type = type
+      @argument = argument
       @index = index
       @opts = opts
       @constructor = constructor
-      @to_s = "#{opts.merge(type: type)}"
+      @to_s = "#{opts.merge(argument: argument)}"
       @options_mapper = opts[:map_options]
 
       @status = nil
@@ -16,7 +16,7 @@ module NxtPipeline
       @mapped_options = nil
     end
 
-    attr_reader :type, :result, :status, :error, :opts, :index, :mapped_options
+    attr_reader :argument, :result, :status, :error, :opts, :index, :mapped_options
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
@@ -46,9 +46,9 @@ module NxtPipeline
       raise
     end
 
-    def type?(potential_type)
-      constructor.resolve_type(potential_type)
-    end
+    # def type?(potential_type)
+    #   constructor.resolve_type(potential_type)
+    # end
 
     private
 

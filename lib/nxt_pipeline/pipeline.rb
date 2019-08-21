@@ -12,6 +12,7 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @constructors = {}
+      @step_resolvers = [->(step_argument) { step_argument }]
 
       configure(&block) if block_given?
     end
@@ -30,6 +31,10 @@ module NxtPipeline
       set_default_constructor(name)
     end
 
+    def step_resolver(&block)
+      step_resolvers << block
+    end
+
     def set_default_constructor(name)
       raise_duplicate_default_constructor if default_constructor_name.present?
       self.default_constructor_name = name
@@ -39,32 +44,41 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
-    def step(type = nil, **opts, &block)
+    def step(argument = nil, **opts, &block)
       constructor = if block_given?
         # make type the :to_s of inline steps
         # fall back to :inline if no type is given
-        type ||= :inline
-        opts.reverse_merge!(to_s: type)
-        Constructor.new(type, opts, block)
+        opts.reverse_merge!(to_s: :inline)
+        Constructor.new(:inline, opts, block)
       else
-        if type.is_a?(Symbol)
-          raise_reserved_type_inline_error if type == :inline
-          constructors.fetch(type) { raise KeyError, "No step :#{type} registered" }
-        else
-          dynamic_constructor = constructors.values.find { |constructor| constructor.resolve_type(type) }
 
-          if dynamic_constructor
-            dynamic_constructor
-          elsif default_constructor
-            type ||= default_constructor_name
-            default_constructor
-          else
-            (raise StandardError, "Could not resolve type: #{type}")
-          end
+        constructor = step_resolvers.each do |resolver|
+          result = resolver.call(argument)
+          break result if result
         end
+
+        constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" }
+        default_constructor_name
+        default_constructor
+
+        # if type.is_a?(Symbol)
+        #   raise_reserved_type_inline_error if type == :inline
+        #   constructors.fetch(type) { raise KeyError, "No step :#{type} registered" }
+        # else
+        #   dynamic_constructor = constructors.values.find { |constructor| constructor.resolve_type(type) }
+        #
+        #   if dynamic_constructor
+        #     dynamic_constructor
+        #   elsif default_constructor
+        #     type ||= default_constructor_name
+        #     default_constructor
+        #   else
+        #     (raise StandardError, "Could not resolve type: #{type}")
+        #   end
+        # end
       end
 
-      steps << Step.new(type, constructor, steps.count, **opts)
+      steps << Step.new(argument, constructor, steps.count, **opts)
     end
 
     def execute(**changeset, &block)
@@ -113,7 +127,7 @@ module NxtPipeline
 
     private
 
-    attr_reader :error_callbacks, :constructors
+    attr_reader :error_callbacks, :constructors, :step_resolvers
     attr_accessor :current_step,
                   :current_arg,
                   :default_constructor_name,
