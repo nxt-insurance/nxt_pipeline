@@ -4,7 +4,7 @@ module NxtPipeline
       new(&block).execute(**opts)
     end
 
-    def initialize(&block)
+    def initialize(step_resolvers = default_step_resolvers, &block)
       @steps = []
       @error_callbacks = []
       @logger = Logger.new
@@ -12,9 +12,7 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @constructors = {}
-      @step_resolvers = [
-        ->(step_argument) { step_argument.is_a?(Symbol) && step_argument }
-      ]
+      @step_resolvers = step_resolvers
 
       configure(&block) if block_given?
     end
@@ -155,6 +153,10 @@ module NxtPipeline
 
     def raise_reserved_type_inline_error
       raise ArgumentError, 'Type :inline is reserved for inline steps!'
+    end
+
+    def default_step_resolvers
+      [->(step_argument) { step_argument.is_a?(Symbol) && step_argument }]
     end
   end
 end
