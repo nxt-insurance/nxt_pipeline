@@ -12,7 +12,9 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @constructors = {}
-      @step_resolvers = [->(step_argument) { step_argument }]
+      @step_resolvers = [
+        ->(step_argument) { step_argument }
+      ]
 
       configure(&block) if block_given?
     end
@@ -48,18 +50,17 @@ module NxtPipeline
       constructor = if block_given?
         # make type the :to_s of inline steps
         # fall back to :inline if no type is given
-        opts.reverse_merge!(to_s: :inline)
+        opts.reverse_merge!(to_s: (argument || :inline))
         Constructor.new(:inline, opts, block)
       else
 
-        constructor = step_resolvers.each do |resolver|
-          result = resolver.call(argument)
-          break result if result
-        end
+        constructor = step_resolvers.lazy.map do |resolver|
+          resolver.call(argument)
+        end.find(&:itself)
 
-        constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" }
-        default_constructor_name
-        default_constructor
+
+        constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" } ||
+          default_constructor || (raise StandardError, "Could not resolve step from: #{argument}")
 
         # if type.is_a?(Symbol)
         #   raise_reserved_type_inline_error if type == :inline

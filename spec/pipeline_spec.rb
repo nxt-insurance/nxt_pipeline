@@ -52,7 +52,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'assigns the correct type to ech step' do
-      expect(subject.steps.map(&:type)).to all(eq(:service))
+      expect(subject.steps.map(&:argument)).to all(eq(:service))
     end
 
     it 'executes the steps' do
@@ -319,8 +319,8 @@ RSpec.describe NxtPipeline::Pipeline do
       expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A_H_A_N_N_A')
     end
 
-    it 'assigns the correct types' do
-      expect(subject.steps.map(&:type)).to eq(%i[service other service])
+    it 'assigns the correct arguments' do
+      expect(subject.steps.map(&:argument)).to eq(%i[service other service])
     end
   end
 
@@ -340,9 +340,9 @@ RSpec.describe NxtPipeline::Pipeline do
       expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
     end
 
-    it 'assigns the type of the default constructor to the steps' do
+    it 'assigns the argument of the default constructor to the steps' do
       subject.execute(arg: 'hanna')
-      expect(subject.steps.map(&:type)).to all(eq(:proc))
+      expect(subject.steps.map(&:argument)).to all(eq(:proc))
     end
 
     context 'when defined multiple times' do
@@ -520,7 +520,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
   end
 
-  context 'dynamic types' do
+  context 'dynamic arguments' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         service_type_resolver = ->(type) { type.is_a?(Class) }
@@ -552,7 +552,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
     end
 
-    it 'is possible to have dynamic types' do
+    it 'is possible to have dynamic arguments' do
       expect(subject.execute(arg: 'hanna')).to eq(:HANNAHANNA)
     end
   end
