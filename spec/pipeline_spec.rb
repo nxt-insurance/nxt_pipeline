@@ -523,22 +523,26 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'dynamic arguments' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        service_type_resolver = ->(type) { type.is_a?(Class) }
+        pipeline.step_resolver do |argument|
+          argument.is_a?(Class) && :service
+        end
 
-        pipeline.constructor(:service, default: true, type_resolver: service_type_resolver) do |step, arg:|
-          result = step.type.new(word: arg).call
+        pipeline.step_resolver do |argument|
+          argument.is_a?(String) && :dynamic
+        end
+
+        pipeline.constructor(:service, default: true) do |step, arg:|
+          result = step.argument.new(word: arg).call
           { arg: result }
         end
 
-        string_type_resolver = ->(type) { type.is_a?(String) }
-
-        pipeline.constructor(:dynamic, type_resolver: string_type_resolver) do |step, arg:|
-          if step.type == 'multiply'
+        pipeline.constructor(:dynamic) do |step, arg:|
+          if step.argument == 'multiply'
             { arg: arg * 2 }
-          elsif step.type == 'symbolize'
+          elsif step.argument == 'symbolize'
             { arg: arg.to_sym }
           else
-            raise ArgumentError, "Don't know how to deal with type: #{step.type}"
+            raise ArgumentError, "Don't know how to deal with argument: #{step.argument}"
           end
         end
 

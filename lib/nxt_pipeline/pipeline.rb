@@ -13,7 +13,7 @@ module NxtPipeline
       @default_constructor_name = nil
       @constructors = {}
       @step_resolvers = [
-        ->(step_argument) { step_argument }
+        ->(step_argument) { step_argument.is_a?(Symbol) && step_argument }
       ]
 
       configure(&block) if block_given?
@@ -57,7 +57,6 @@ module NxtPipeline
         constructor = step_resolvers.lazy.map do |resolver|
           resolver.call(argument)
         end.find(&:itself)
-
 
         constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" } ||
           default_constructor || (raise StandardError, "Could not resolve step from: #{argument}")
