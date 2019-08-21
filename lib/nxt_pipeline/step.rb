@@ -22,20 +22,20 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**opts)
+    def execute(**changeset)
       mapper = options_mapper || default_options_mapper
-      mapper_args = [opts, self].take(mapper.arity)
+      mapper_args = [changeset, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
 
-      guard_args = [opts, self]
+      guard_args = [changeset, self]
 
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        constructor_args = [self, opts]
+        constructor_args = [self, changeset]
         constructor_args = constructor_args.take(constructor.arity)
-        self.result = constructor.call(*constructor_args) # here we could pass in the mapped options
+        self.result = constructor.call(*constructor_args)
       end
 
       set_status

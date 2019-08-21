@@ -11,7 +11,7 @@ module NxtPipeline
       @current_step = nil
       @current_arg = nil
       @default_constructor_name = nil
-      @registry = {}
+      @constructors = {}
 
       configure(&block) if block_given?
     end
@@ -22,9 +22,9 @@ module NxtPipeline
 
     def constructor(name, **opts, &constructor)
       name = name.to_sym
-      raise StandardError, "Already registered step :#{name}" if registry[name]
+      raise StandardError, "Already registered step :#{name}" if constructors[name]
 
-      registry[name] = Constructor.new(name, opts, constructor)
+      constructors[name] = Constructor.new(name, opts, constructor)
 
       return unless opts.fetch(:default, false)
       set_default_constructor(name)
@@ -49,9 +49,9 @@ module NxtPipeline
       else
         if type.is_a?(Symbol)
           raise_reserved_type_inline_error if type == :inline
-          registry.fetch(type) { raise KeyError, "No step :#{type} registered" }
+          constructors.fetch(type) { raise KeyError, "No step :#{type} registered" }
         else
-          dynamic_constructor = registry.values.find { |constructor| constructor.resolve_type(type) }
+          dynamic_constructor = constructors.values.find { |constructor| constructor.resolve_type(type) }
 
           if dynamic_constructor
             dynamic_constructor
@@ -67,19 +67,19 @@ module NxtPipeline
       steps << Step.new(type, constructor, steps.count, **opts)
     end
 
-    def execute(**opts, &block)
+    def execute(**changeset, &block)
       reset
 
       configure(&block) if block_given?
-      before_execute_callback.call(self, opts) if before_execute_callback.respond_to?(:call)
+      before_execute_callback.call(self, changeset) if before_execute_callback.respond_to?(:call)
 
-      result = steps.inject(opts) do |options, step|
-        execute_step(step, **options)
+      result = steps.inject(changeset) do |changeset, step|
+        execute_step(step, **changeset)
       rescue StandardError => error
         callback = find_error_callback(error)
         raise unless callback && callback.continue_after_error?
         handle_step_error(error)
-        options
+        changeset
       end
 
       after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
@@ -113,7 +113,7 @@ module NxtPipeline
 
     private
 
-    attr_reader :error_callbacks, :registry
+    attr_reader :error_callbacks, :constructors
     attr_accessor :current_step,
                   :current_arg,
                   :default_constructor_name,
@@ -123,15 +123,15 @@ module NxtPipeline
     def default_constructor
       return unless default_constructor_name
 
-      @default_constructor ||= registry[default_constructor_name.to_sym]
+      @default_constructor ||= constructors[default_constructor_name.to_sym]
     end
 
-    def execute_step(step, **opts)
+    def execute_step(step, **changeset)
       self.current_step = step
-      self.current_arg = opts
-      result = step.execute(**opts)
+      self.current_arg = changeset
+      result = step.execute(**changeset)
       log_step(step)
-      result || opts
+      result || changeset
     end
 
     def find_error_callback(error)

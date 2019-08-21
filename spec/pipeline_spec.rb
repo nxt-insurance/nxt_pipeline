@@ -29,6 +29,12 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'when there are no errors' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
+        # pipeline.step_resolver do |step|
+        #   if step.argument.is_a?(Symbol)
+        #     pipeline.constructor(:service)
+        #   end
+        # end
+
         pipeline.constructor(:service) do |step, word:|
           step.to_s = step.service_class.name
           result = step.service_class.new(word: word).call
