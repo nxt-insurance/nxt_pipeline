@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline do
+RSpec.describe NxtPipeline::Pipeline do
   class StepOne
     def initialize(word:)
       @word = word
@@ -29,6 +29,12 @@ RSpec.describe NxtPipeline do
   context 'when there are no errors' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
+        # pipeline.step_resolver do |step|
+        #   if step.argument.is_a?(Symbol)
+        #     pipeline.constructor(:service)
+        #   end
+        # end
+
         pipeline.constructor(:service) do |step, word:|
           step.to_s = step.service_class.name
           result = step.service_class.new(word: word).call
@@ -46,7 +52,7 @@ RSpec.describe NxtPipeline do
     end
 
     it 'assigns the correct type to ech step' do
-      expect(subject.steps.map(&:type)).to all(eq(:service))
+      expect(subject.steps.map(&:argument)).to all(eq(:service))
     end
 
     it 'executes the steps' do
@@ -313,8 +319,8 @@ RSpec.describe NxtPipeline do
       expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A_H_A_N_N_A')
     end
 
-    it 'assigns the correct types' do
-      expect(subject.steps.map(&:type)).to eq(%i[service other service])
+    it 'assigns the correct arguments' do
+      expect(subject.steps.map(&:argument)).to eq(%i[service other service])
     end
   end
 
@@ -334,9 +340,9 @@ RSpec.describe NxtPipeline do
       expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
     end
 
-    it 'assigns the type of the default constructor to the steps' do
+    it 'assigns the argument of the default constructor to the steps' do
       subject.execute(arg: 'hanna')
-      expect(subject.steps.map(&:type)).to all(eq(:proc))
+      expect(subject.steps.map(&:argument)).to all(eq(:proc))
     end
 
     context 'when defined multiple times' do
@@ -382,8 +388,8 @@ RSpec.describe NxtPipeline do
     it 'logs the result for each step' do
       subject.execute(arg: 'hanna')
 
-      expect(subject.steps.find { |s| s.type?(:inline) }.result).to eq(arg: 'HANNA')
-      expect(subject.steps.find { |s| s.type?(:second_step) }.result).to eq(arg: 'H_A_N_N_A')
+      expect(subject.steps.find { |s| s.argument == :inline }.result).to eq(arg: 'HANNA')
+      expect(subject.steps.find { |s| s.argument == :second_step }.result).to eq(arg: 'H_A_N_N_A')
     end
 
     context 'when :to_s option was provided' do
@@ -436,7 +442,7 @@ RSpec.describe NxtPipeline do
   context 'logger' do
     class CustomLogger
       def call(step)
-        log << step.type
+        log << step.argument
       end
 
       def log
@@ -511,6 +517,47 @@ RSpec.describe NxtPipeline do
 
     it 'executes the steps directly' do
       expect(subject).to eq('HANNA')
+    end
+  end
+
+  context 'dynamic arguments' do
+    subject do
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.step_resolver do |argument|
+          argument.is_a?(Class) && :service
+        end
+
+        pipeline.step_resolver do |argument|
+          argument.is_a?(String) && :dynamic
+        end
+
+        pipeline.constructor(:service, default: true) do |step, arg:|
+          result = step.argument.new(word: arg).call
+          { arg: result }
+        end
+
+        pipeline.constructor(:dynamic) do |step, arg:|
+          if step.argument == 'multiply'
+            { arg: arg * 2 }
+          elsif step.argument == 'symbolize'
+            { arg: arg.to_sym }
+          else
+            raise ArgumentError, "Don't know how to deal with argument: #{step.argument}"
+          end
+        end
+
+        pipeline.step StepOne
+        pipeline.step 'multiply'
+        pipeline.step 'symbolize'
+
+        pipeline.step do |step, arg:|
+          arg
+        end
+      end
+    end
+
+    it 'is possible to have dynamic arguments' do
+      expect(subject.execute(arg: 'hanna')).to eq(:HANNAHANNA)
     end
   end
 end

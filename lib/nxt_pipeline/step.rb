@@ -1,32 +1,41 @@
 module NxtPipeline
   class Step
-    def initialize(type, constructor, index, **opts)
+    def initialize(argument, constructor, index, **opts)
       define_attr_readers(opts)
 
-      @type = type
+      @argument = argument
       @index = index
       @opts = opts
       @constructor = constructor
-      @to_s = "#{opts.merge(type: type)}"
+      @to_s = "#{opts.merge(argument: argument)}"
+      @options_mapper = opts[:map_options]
 
       @status = nil
       @result = nil
       @error = nil
+      @mapped_options = nil
     end
 
-    attr_reader :type, :result, :status, :error, :opts, :index
+    attr_reader :argument, :result, :status, :error, :opts, :index, :mapped_options
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**opts)
-      guard_args = [opts, self]
+    def execute(**changeset)
+      mapper = options_mapper || default_options_mapper
+      mapper_args = [changeset, self].take(mapper.arity)
+      self.mapped_options = mapper.call(*mapper_args)
+
+      guard_args = [changeset, self]
+
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
       if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
-        self.result = constructor.call(self, **opts)
+        constructor_args = [self, changeset]
+        constructor_args = constructor_args.take(constructor.arity)
+        self.result = constructor.call(*constructor_args)
       end
 
       set_status
@@ -37,14 +46,14 @@ module NxtPipeline
       raise
     end
 
-    def type?(potential_type)
-      type.to_sym == potential_type.to_sym
-    end
+    # def type?(potential_type)
+    #   constructor.resolve_type(potential_type)
+    # end
 
     private
 
-    attr_writer :result, :status, :error
-    attr_reader :constructor
+    attr_writer :result, :status, :error, :mapped_options
+    attr_reader :constructor, :options_mapper
 
     def if_guard
       opts.fetch(:if) { guard(true) }
@@ -68,6 +77,11 @@ module NxtPipeline
 
     def set_status
       self.status = result.present? ? :success : :skipped
+    end
+
+    def default_options_mapper
+      # returns an empty hash
+      ->(changeset) { {} }
     end
   end
 end
