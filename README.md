@@ -192,6 +192,12 @@ end
 
 Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
 
+### Step resolvers
+
+NxtPipeline is using so called step_resolvers to find the constructor for a given step by the arguments passed in.
+You can also use this if you are not fine with resolving the constructor from the step argument. Check out the 
+`nxt_pipeline/spec/step_resolver_spec.rb` for examples how you can implement your own step_resolvers.  
+
 
 ## Topics
 - Step orchestration (chainable steps)
