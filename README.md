@@ -192,55 +192,6 @@ end
 
 Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
 
-### DSL
-
-The gem also comes with an easy DSL to make pipeline handling in your code more convenient. 
-Simply include NxtPipeline::Dsl in your class:
-
-```ruby
-class MyAwesomeClass
-  include NxtPipeline::Dsl
-  
-  # register a pipeline with a name and a block
-  pipeline :validation do |p|
-    pipeline.constructor(:validate) do |step, arg:|
-      result = step.validator.call(arg: arg)
-      result && { arg: result }
-    end
-    
-    pipeline.step :validate, validator: NameValidator
-    pipeline.step :validate, validator: AdressValidator
-    pipeline.step :validate, validator: BankAccountValidator
-    pipeline.step :validate, validator: PhoneNumberValidator
-    
-    p.on_error ValidationError do |step, opts, error|
-      # ...
-    end
-  end
-  
-  pipeline :execution do |p|
-    p.step do |_, arg:|
-      { arg: arg.upcase }
-    end
-      
-    p.on_error MyCustomError do |step, opts, error|
-      # nesting pipelines also works
-      pipeline(:error).execute(error)
-    end
-  end
-  
-  pipeline :error do |p|
-    p.step do |_, error|
-      error # do something here
-    end
-  end
-  
-  def call(arg)
-    # execute a pipeline simply by fetching it and calling execute on it as you would normally
-    pipeline(:execution).execute(arg: arg)
-  end
-end
-```
 
 ## Topics
 - Step orchestration (chainable steps)
