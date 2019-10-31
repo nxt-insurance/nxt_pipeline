@@ -137,6 +137,15 @@ RSpec.describe NxtPipeline::Pipeline do
 
       expect(subject.steps.map(&:error)).to match([nil, nil, be_a(ArgumentError)])
     end
+
+    it 'adds methods to the error' do
+      subject.execute(arg: 'hanna')
+      argument_error = subject.steps.map(&:error).last
+
+      expect(argument_error.details.logger).to eq(subject.logger)
+      expect(argument_error.details.step.to_s).to eq('StepWithArgumentError')
+      expect(argument_error.details.changeset).to eq(arg: "HANNA")
+    end
   end
 
   context 'error callbacks' do

@@ -78,6 +78,16 @@ module NxtPipeline
       result = steps.inject(changeset) do |changeset, step|
         execute_step(step, **changeset)
       rescue StandardError => error
+        logger_for_error = logger
+
+        error.define_singleton_method :details do
+          OpenStruct.new(
+            changeset: changeset,
+            logger: logger_for_error,
+            step: step
+          )
+        end
+
         callback = find_error_callback(error)
         raise unless callback && callback.continue_after_error?
         handle_step_error(error)
