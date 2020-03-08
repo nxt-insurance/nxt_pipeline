@@ -1,4 +1,6 @@
-## Unreleased
+## nxt_pipeline 0.4.1 (TBD)
+
+* Fix deprecation warnings for Ruby 2.7
 
 ## nxt_pipeline 0.2.0 (March 10, 2019)
 
