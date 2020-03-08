@@ -1,6 +1,7 @@
 module NxtPipeline
   class Constructor
-    def initialize(name, opts, block)
+    def initialize(name, opts, &block)
+      binding.pry
       @name = name
       @block = block
       @opts = opts
