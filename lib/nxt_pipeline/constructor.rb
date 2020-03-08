@@ -11,9 +11,9 @@ module NxtPipeline
     delegate :arity, to: :block
     
     def call(*args, **opts, &block)
-      # Delegating #call to block somehow passes the opts as hash to it without
-      # double splat operator which causes Ruby 2.7 to scream warning like crazy.
-      # Therefore we implement #call here again.
+      # ActiveSupport's #delegate does not properly handle keyword arg passing
+      # in the latest released version. Thefore we bypass delegation by reimplementing
+      # the method ourselves. This is already fixed in Rails master though.
       self.block.call(*args, **opts, &block)
     end
   end
