@@ -423,7 +423,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       def call
-        pipeline.execute(@string)
+        pipeline.execute(arg: @string)
       end
 
       def pipeline
@@ -440,7 +440,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     subject do
-      Transformer.new(arg: 'hanna').call
+      Transformer.new('hanna').call
     end
 
     it 'can access the methods in the scope' do

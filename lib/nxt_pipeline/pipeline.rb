@@ -25,8 +25,7 @@ module NxtPipeline
       name = name.to_sym
       raise StandardError, "Already registered step :#{name}" if constructors[name]
 
-      binding.pry
-      constructors[name] = Constructor.new(name, opts, &constructor)
+      constructors[name] = Constructor.new(name, **opts, &constructor)
 
       return unless opts.fetch(:default, false)
       set_default_constructor(name)
@@ -51,8 +50,7 @@ module NxtPipeline
         # fall back to :inline if no type is given
         argument ||= :inline
         opts.reverse_merge!(to_s: argument)
-        binding.pry
-        Constructor.new(:inline, opts, &block)
+        Constructor.new(:inline, **opts, &block)
       else
         constructor = step_resolvers.lazy.map do |resolver|
           resolver.call(argument)

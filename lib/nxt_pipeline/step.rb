@@ -32,10 +32,11 @@ module NxtPipeline
       if_guard_args = guard_args.take(if_guard.arity)
       unless_guard_guard_args = guard_args.take(unless_guard.arity)
 
-      if !unless_guard.call(*unless_guard_guard_args) && if_guard.call(*if_guard_args)
+      if !instrumentalize_callable(unless_guard, unless_guard_guard_args) && instrumentalize_callable(if_guard, if_guard_args)
         constructor_args = [self, changeset]
         constructor_args = constructor_args.take(constructor.arity)
-        self.result = constructor.call(*constructor_args)
+
+        self.result = instrumentalize_callable(constructor, constructor_args)
       end
 
       set_status
@@ -54,6 +55,14 @@ module NxtPipeline
 
     attr_writer :result, :status, :error, :mapped_options
     attr_reader :constructor, :options_mapper
+    
+    def instrumentalize_callable(callable, args)
+      if args.last.is_a?(Hash)
+        callable.call(*args.take(args.length - 1), **args.last)
+      else
+        callable.call(*args)
+      end
+    end
 
     def if_guard
       opts.fetch(:if) { guard(true) }
