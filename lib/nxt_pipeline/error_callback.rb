@@ -1,7 +1,7 @@
 module NxtPipeline
   class ErrorCallback
     def initialize(errors, halt_on_error, &callback)
-      @errors = errors
+      @errors = errors.any? ? errors : [StandardError]
       @halt_on_error = halt_on_error
       @callback = callback
     end

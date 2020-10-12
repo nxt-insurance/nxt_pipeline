@@ -166,7 +166,7 @@ RSpec.describe NxtPipeline::Pipeline do
         end
 
         pipeline.on_error do |step, opts, error|
-          raise error
+          'all errors inheriting from standard error callback fired'
         end
       end
     end
@@ -174,7 +174,7 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'executes the first matching callback' do
       expect(subject.execute(error: OtherCustomError)).to eq('other_custom_error callback fired')
       expect(subject.execute(error: CustomError)).to eq('custom_error callback fired')
-      expect { subject.execute(error: ArgumentError) }.to raise_error(ArgumentError)
+      expect(subject.execute(error: ArgumentError)).to eq('all errors inheriting from standard error callback fired')
     end
 
     context 'when the more common handler was registered before the more specific handler' do

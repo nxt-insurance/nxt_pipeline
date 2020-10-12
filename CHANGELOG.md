@@ -1,3 +1,7 @@
+## nxt_pipeline 0.4.2 (October 12, 2020)
+
+* Fix bug when registering an error without passing arguments in which case the callback didn't get executed. More info: https://github.com/nxt-insurance/nxt_pipeline/issues/39
+
 ## nxt_pipeline 0.4.1 (March 13, 2020)
 
 * Fix deprecation warnings for Ruby 2.7
@@ -16,7 +20,7 @@
   Renamed `NxtPipeline::Pipeline#burst?` to `NxtPipeline::Pipeline#failed?`.
   Renamed `NxtPipeline::Pipeline#burst_segment` to `NxtPipeline::Pipeline#failed_step`.
   Renamed `NxtPipeline::Pipeline::rescue_segment_burst` to `NxtPipeline::Pipeline::rescue_errors`.
-  
+
   *Nils Sommer*
 
 * Setup [guard](https://github.com/guard/guard) to run specs upon file changes during development.
