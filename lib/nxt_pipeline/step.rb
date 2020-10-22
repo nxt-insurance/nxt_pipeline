@@ -16,22 +16,24 @@ module NxtPipeline
       @mapped_options = nil
     end
 
-    attr_reader :argument, :result, :status, :error, :opts, :index, :mapped_options
+    attr_reader :argument, :result, :status, :execution_started_at, :execution_finished_at, :execution_duration, :error, :opts, :index, :mapped_options
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
     def execute(**changeset)
-      set_mapped_options(changeset)
-      guard_args = [changeset, self]
+      track_execution_time do
+        set_mapped_options(changeset)
+        guard_args = [changeset, self]
 
-      if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-        self.result = construct_result(changeset)
+        if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
+          self.result = construct_result(changeset)
+        end
+
+        set_status
+        result
       end
-
-      set_status
-      result
     rescue StandardError => e
       self.status = :failed
       self.error = e
@@ -46,7 +48,7 @@ module NxtPipeline
 
     private
 
-    attr_writer :result, :status, :error, :mapped_options
+    attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
     attr_reader :constructor, :options_mapper
 
     def evaluate_if_guard(args)
@@ -94,6 +96,26 @@ module NxtPipeline
 
     def set_status
       self.status = result.present? ? :success : :skipped
+    end
+
+    def track_execution_time(&block)
+      set_execution_started_at
+      block.call
+    ensure
+      set_execution_finished_at
+      set_execution_duration
+    end
+
+    def set_execution_started_at
+      self.execution_started_at = Time.current
+    end
+
+    def set_execution_finished_at
+      self.execution_finished_at = Time.current
+    end
+
+    def set_execution_duration
+      self.execution_duration = execution_finished_at - execution_started_at
     end
 
     def default_options_mapper
