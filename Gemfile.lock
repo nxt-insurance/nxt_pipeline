@@ -3,6 +3,7 @@ PATH
   specs:
     nxt_pipeline (0.4.2)
       activesupport
+      nxt_registry
 
 GEM
   remote: https://rubygems.org/
@@ -46,6 +47,8 @@ GEM
     notiffany (0.1.1)
       nenv (~> 0.1)
       shellany (~> 0.0)
+    nxt_registry (0.3.2)
+      activesupport
     pry (0.13.0)
       coderay (~> 1.1)
       method_source (~> 1.0)
