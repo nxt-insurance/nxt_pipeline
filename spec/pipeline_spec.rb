@@ -286,11 +286,11 @@ RSpec.describe NxtPipeline::Pipeline do
           { arg: arg }
         end
 
-        pipeline.before_execute do |pipeline, opts|
+        pipeline.before_step do |pipeline, opts|
           opts[:arg].prepend('before ')
         end
 
-        pipeline.after_execute do |pipeline, opts|
+        pipeline.after_step do |pipeline, opts|
           opts[:arg] << ' after'
         end
       end

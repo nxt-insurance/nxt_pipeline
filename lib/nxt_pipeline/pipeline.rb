@@ -115,22 +115,40 @@ module NxtPipeline
 
     alias :on_error :on_errors
 
-    def before_execute(&callback)
-      self.before_execute_callback = callback
+    def before_step(&block)
+      callbacks.resolve!(:step, :before) << block
     end
 
-    def after_execute(&callback)
-      self.after_execute_callback = callback
+    def after_step(&block)
+      callbacks.resolve!(:step, :after) << block
+    end
+
+    def around_step(&block)
+      callbacks.resolve!(:step, :around) << block
+    end
+
+    def before_execution(&block)
+      callbacks.resolve!(:execution, :before) << block
+    end
+
+    def after_execution(&block)
+      callbacks.resolve!(:execution, :after) << block
+    end
+
+    def around_execution(&block)
+      callbacks.resolve!(:execution, :around) << block
     end
 
     private
 
+    def callbacks
+      @callbacks ||= NxtPipeline::Callbacks.new
+    end
+
     attr_reader :error_callbacks, :constructors, :step_resolvers
     attr_accessor :current_step,
                   :current_arg,
-                  :default_constructor_name,
-                  :before_execute_callback,
-                  :after_execute_callback
+                  :default_constructor_name
 
     def default_constructor
       return unless default_constructor_name

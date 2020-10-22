@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activesupport"
+  spec.add_dependency "nxt_registry"
   spec.add_development_dependency "bundler", "~> 2.1"
   spec.add_development_dependency "guard-rspec"
   spec.add_development_dependency "rake", "~> 13.0"
