@@ -286,11 +286,11 @@ RSpec.describe NxtPipeline::Pipeline do
           { arg: arg }
         end
 
-        pipeline.before_step do |pipeline, opts|
+        pipeline.before_execution do |pipeline, opts|
           opts[:arg].prepend('before ')
         end
 
-        pipeline.after_step do |pipeline, opts|
+        pipeline.after_execution do |pipeline, opts|
           opts[:arg] << ' after'
         end
       end
@@ -307,14 +307,30 @@ RSpec.describe NxtPipeline::Pipeline do
             arg
           end
 
-          pipeline.after_execute do |pipeline, arg|
-            arg << " => status: #{pipeline.logger.log.dig('anonymous_step')}"
+          pipeline.before_step do |_, arg|
+            arg[:arg] << " before"
+          end
+
+          pipeline.before_step do |_, arg|
+            arg[:arg] << " the step"
+          end
+
+          pipeline.after_step do |_, arg|
+            arg[:arg] << " *"
+          end
+
+          pipeline.after_step do |_, arg|
+            arg[:arg] << " %"
+          end
+
+          pipeline.after_execution do |pipeline, arg|
+            arg[:arg] << " => status: #{pipeline.logger.log.dig('anonymous_step')}"
           end
         end
       end
 
       it 'executes the callback' do
-        expect(subject.execute(arg: 'getsafe')).to eq('getsafe => status: success')
+        expect(subject.execute(arg: 'getsafe')).to eq('getsafe before the step * % => status: success')
       end
     end
   end

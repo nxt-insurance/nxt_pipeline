@@ -66,14 +66,16 @@ module NxtPipeline
         end
       end
 
-      steps << Step.new(argument, constructor, steps.count, **opts)
+      steps << Step.new(argument, constructor, steps.count, self, **opts)
     end
 
     def execute(**changeset, &block)
       reset
-
       configure(&block) if block_given?
-      before_execute_callback.call(self, changeset) if before_execute_callback.respond_to?(:call)
+      run_callbacks(:execution, :before, changeset)
+
+
+
 
       result = steps.inject(changeset) do |changeset, step|
         execute_step(step, **changeset)
@@ -94,7 +96,8 @@ module NxtPipeline
         changeset
       end
 
-      after_execute_callback.call(self, result) if after_execute_callback.respond_to?(:call)
+      run_callbacks(:execution, :after, changeset)
+
       result
     rescue StandardError => error
       handle_step_error(error)
@@ -141,8 +144,38 @@ module NxtPipeline
 
     private
 
+    def run_callbacks(type, kind, changeset)
+      callbacks.resolve!(type, kind).each do |callback|
+        run_callback(callback, changeset)
+      end
+    end
+
+    def run_around_callbacks(type, *args, &block)
+      around_callbacks = callbacks.resolve!(type, :around)
+      around_callbacks = around_callbacks + [block]
+      # TODO
+    end
+
+    def before_execution_callbacks
+      callbacks.resolve!(:execution, :before)
+    end
+
+    def after_execution_callbacks
+      callbacks.resolve!(:execution, :after)
+    end
+
+    def around_execution_callbacks
+      callbacks.resolve!(:execution, :around)
+    end
+
     def callbacks
       @callbacks ||= NxtPipeline::Callbacks.new
+    end
+
+    def run_callback(callback, changeset)
+      args = [self, changeset]
+      args = args.take(callback.arity)
+      callback.call(*args)
     end
 
     attr_reader :error_callbacks, :constructors, :step_resolvers
