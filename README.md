@@ -24,35 +24,35 @@ Or install it yourself as:
 
 ### Constructors
 
-First you probably want to configure a pipeline so that it can execute your steps. 
-Therefore you want to define constructors for your steps. Constructors take a name 
+First you probably want to configure a pipeline so that it can execute your steps.
+Therefore you want to define constructors for your steps. Constructors take a name
 as the first argument and step options as the second. All step options are being exposed
-by the step yielded to the constructor. 
+by the step yielded to the constructor.
 
 ```ruby
 pipeline = NxtPipeline::Pipeline.new do |p|
   # Add a named constructor that will be used to execute your steps later
   # All options that you pass in your step will be available through accessors in your constructor
-  # You can call :to_s on a step to set it by default. You can later overwrite at execution for each step if needed. 
+  # You can call :to_s on a step to set it by default. You can later overwrite at execution for each step if needed.
   p.constructor(:service, default: true) do |step, arg:|
     step.to_s = step.service_class.to_s
     result = step.service_class.new(options: arg).call
     result && { arg: result }
   end
-  
+
   p.constructor(:job) do |step, arg:|
     step.job_class.perform_later(*arg) && { arg: arg }
   end
 end
 
-# Once a pipeline was created you can still configure it 
+# Once a pipeline was created you can still configure it
 pipeline.constructor(:call) do |step, arg:|
   result = step.caller.new(arg).call
   result && { arg: result }
 end
 
-# same with block syntax 
-# You can use this to split up execution from configuration  
+# same with block syntax
+# You can use this to split up execution from configuration
 pipeline.configure do |p|
  p.constructor(:call) do |step, arg:|
    result = step.caller.new(arg).call
@@ -61,13 +61,13 @@ pipeline.configure do |p|
 end
 ```
 
-### Defining steps 
+### Defining steps
 
 Once your pipeline knows how to execute your steps you can add those.
 
 ```ruby
 pipeline.step :service, service_class: MyServiceClass, to_s: 'First step'
-pipeline.step service_class: MyOtherServiceClass, to_s: 'Second step' 
+pipeline.step service_class: MyOtherServiceClass, to_s: 'Second step'
 # ^ Since service is the default step you don't have to specify it the step type each time
 pipeline.step :job, job_class: MyJobClass # to_s is optional
 pipeline.step :job, job_class: MyOtherJobClass
@@ -82,12 +82,12 @@ end
 ```
 
 You can also define inline steps, meaning the block will be executed. When you do not provide a :to_s option, type
-will be used as :to_s option per default. When no type was given for an inline block the type of the inline block 
-will be set to :inline. 
+will be used as :to_s option per default. When no type was given for an inline block the type of the inline block
+will be set to :inline.
 
 ### Execution
 
-You can then execute the steps with: 
+You can then execute the steps with:
 
 ```ruby
 pipeline.execute(arg: 'initial argument')
@@ -111,13 +111,13 @@ NxtPipeline::Pipeline.execute(arg: 'initial argument') do |p|
     { arg: arg.upcase }
   end
 end
-``` 
+```
 
-You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with 
-an interface to it's type, options, status (:success, :skipped, :failed), result, error and the index in the pipeline.
+You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with
+an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at, execution_duration, result, error and the index in the pipeline.
 
 ```
-pipeline.steps.first 
+pipeline.steps.first
 # will give you something like this:
 
 #<NxtPipeline::Step:0x00007f83eb399448
@@ -128,20 +128,23 @@ pipeline.steps.first
  @opts={:to_s=>:transformer, :method=>:upcase},
  @result=nil,
  @status=nil,
- @type=:transformer> 
-``` 
+ @type=:transformer
+ @execution_duration=1.0e-05,
+ @execution_finished_at=2020-10-22 15:52:55.806417 +0100,
+ @execution_started_at=2020-10-22 15:52:55.806407 +0100,>
+```
 
 ### Guard clauses
 
 You can also define guard clauses that take a proc to prevent the execution of a step.
-When the guard takes an argument the step argument is yielded.  
+When the guard takes an argument the step argument is yielded.
 
  ```ruby
  pipeline.execute(arg: 'initial argument') do |p|
    p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
    p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
  end
- 
+
  ```
 
 ### Error callbacks
@@ -153,25 +156,25 @@ NxtPipeline::Pipeline.new do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
-  
+
   p.on_error MyCustomError do |step, opts, error|
     # First matching error callback will be executed!
   end
-  
+
   p.on_errors ArgumentError, KeyError do |step, opts, error|
     # First matching error callback will be executed!
   end
-  
+
   p.on_errors YetAnotherError, halt_on_error: false do |step, opts, error|
     # After executing the callback the pipeline will not halt but continue to
     # execute the next steps.
   end
-  
+
   p.on_errors do |step, opts, error|
     # This will match all errors inheriting from StandardError
   end
 end
-``` 
+```
 
 ### Before and After callbacks
 
@@ -181,27 +184,27 @@ You can also define callbacks that run before and after the `#execute` action. B
 NxtPipeline::Pipeline.new do |p|
   p.before_execute do |pipeline, arg:|
     # Will be called from within #execute before entering the first step
-    # After any configure block though!  
+    # After any configure block though!
   end
-  
+
   p.after_execute do |pipeline, arg:|
     # Will be called from within #execute after executing last step
   end
 end
 ```
 
-Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors. 
+Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
 
 ### Step resolvers
 
 NxtPipeline is using so called step_resolvers to find the constructor for a given step by the arguments passed in.
-You can also use this if you are not fine with resolving the constructor from the step argument. Check out the 
-`nxt_pipeline/spec/step_resolver_spec.rb` for examples how you can implement your own step_resolvers.  
+You can also use this if you are not fine with resolving the constructor from the step argument. Check out the
+`nxt_pipeline/spec/step_resolver_spec.rb` for examples how you can implement your own step_resolvers.
 
 
 ## Topics
 - Step orchestration (chainable steps)
-- Constructors should take arg as first and step as second arg 
+- Constructors should take arg as first and step as second arg
 
 ## Development
 

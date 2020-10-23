@@ -1,3 +1,10 @@
+## nxt_pipeline 0.4.3 (October 20, 2020)
+
+Add new attribute readers on step object.
+
+After executing a step execution_finished_at execution_started_at and execution_duration
+will be set and can be accessed via attribute readers.
+
 ## nxt_pipeline 0.4.2 (October 12, 2020)
 
 * Fix bug when registering an error without passing arguments in which case the callback didn't get executed. More info: https://github.com/nxt-insurance/nxt_pipeline/issues/39

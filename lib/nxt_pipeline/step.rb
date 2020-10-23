@@ -16,47 +16,57 @@ module NxtPipeline
       @mapped_options = nil
     end
 
-    attr_reader :argument, :result, :status, :error, :opts, :index, :mapped_options
+    attr_reader :argument, :result, :status, :execution_started_at, :execution_finished_at, :execution_duration, :error, :opts, :index, :mapped_options
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
     def execute(**changeset)
-      mapper = options_mapper || default_options_mapper
-      mapper_args = [changeset, self].take(mapper.arity)
-      self.mapped_options = mapper.call(*mapper_args)
+      track_execution_time do
+        set_mapped_options(changeset)
+        guard_args = [changeset, self]
 
-      guard_args = [changeset, self]
+        if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
+          self.result = construct_result(changeset)
+        end
 
-      if_guard_args = guard_args.take(if_guard.arity)
-      unless_guard_guard_args = guard_args.take(unless_guard.arity)
-
-      if !instrumentalize_callable(unless_guard, unless_guard_guard_args) && instrumentalize_callable(if_guard, if_guard_args)
-        constructor_args = [self, changeset]
-        constructor_args = constructor_args.take(constructor.arity)
-
-        self.result = instrumentalize_callable(constructor, constructor_args)
+        set_status
+        result
       end
-
-      set_status
-      result
     rescue StandardError => e
       self.status = :failed
       self.error = e
       raise
     end
 
-    # def type?(potential_type)
-    #   constructor.resolve_type(potential_type)
-    # end
+    def set_mapped_options(changeset)
+      mapper = options_mapper || default_options_mapper
+      mapper_args = [changeset, self].take(mapper.arity)
+      self.mapped_options = mapper.call(*mapper_args)
+    end
 
     private
 
-    attr_writer :result, :status, :error, :mapped_options
+    attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
     attr_reader :constructor, :options_mapper
-    
-    def instrumentalize_callable(callable, args)
+
+    def evaluate_if_guard(args)
+      execute_callable(if_guard, args)
+    end
+
+    def evaluate_unless_guard(args)
+      !execute_callable(unless_guard, args)
+    end
+
+    def construct_result(changeset)
+      args = [self, changeset]
+      execute_callable(constructor, args)
+    end
+
+    def execute_callable(callable, args)
+      args =  args.take(callable.arity)
+
       if args.last.is_a?(Hash)
         callable.call(*args.take(args.length - 1), **args.last)
       else
@@ -88,9 +98,29 @@ module NxtPipeline
       self.status = result.present? ? :success : :skipped
     end
 
+    def track_execution_time(&block)
+      set_execution_started_at
+      block.call
+    ensure
+      set_execution_finished_at
+      set_execution_duration
+    end
+
+    def set_execution_started_at
+      self.execution_started_at = Time.current
+    end
+
+    def set_execution_finished_at
+      self.execution_finished_at = Time.current
+    end
+
+    def set_execution_duration
+      self.execution_duration = execution_finished_at - execution_started_at
+    end
+
     def default_options_mapper
       # returns an empty hash
-      ->(changeset) { {} }
+      ->(_) { {} }
     end
   end
 end
