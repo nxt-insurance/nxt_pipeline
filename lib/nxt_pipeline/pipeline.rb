@@ -71,30 +71,31 @@ module NxtPipeline
 
     def execute(**changeset, &block)
       reset
+
       configure(&block) if block_given?
       run_callbacks(:execution, :before, changeset)
 
+      result = run_around_callbacks :execution, changeset do
+        steps.inject(changeset) do |changeset, step|
+          execute_step(step, **changeset)
+        rescue StandardError => error
+          logger_for_error = logger
 
+          error.define_singleton_method :details do
+            OpenStruct.new(
+              changeset: changeset,
+              logger: logger_for_error,
+              step: step
+            )
+          end
 
-
-      result = steps.inject(changeset) do |changeset, step|
-        execute_step(step, **changeset)
-      rescue StandardError => error
-        logger_for_error = logger
-
-        error.define_singleton_method :details do
-          OpenStruct.new(
-            changeset: changeset,
-            logger: logger_for_error,
-            step: step
-          )
+          callback = find_error_callback(error)
+          raise unless callback && callback.continue_after_error?
+          handle_step_error(error)
+          changeset
         end
-
-        callback = find_error_callback(error)
-        raise unless callback && callback.continue_after_error?
-        handle_step_error(error)
-        changeset
       end
+
 
       run_callbacks(:execution, :after, changeset)
 
@@ -150,10 +151,15 @@ module NxtPipeline
       end
     end
 
-    def run_around_callbacks(type, *args, &block)
+    def run_around_callbacks(type, args, &execution)
       around_callbacks = callbacks.resolve!(type, :around)
-      around_callbacks = around_callbacks + [block]
-      # TODO
+      return execution.call unless around_callbacks.any?
+
+      callback_chain = around_callbacks.reverse.inject(execution) do |previous, callback|
+        -> { callback.call(self, args, previous) }
+      end
+
+      callback_chain.call
     end
 
     def before_execution_callbacks
