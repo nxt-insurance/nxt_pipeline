@@ -307,6 +307,18 @@ RSpec.describe NxtPipeline::Pipeline do
             arg
           end
 
+          pipeline.around_execution do |_, arg, execution|
+            arg[:arg] << " around before I"
+            execution.call
+            arg[:arg] << " around after I"
+          end
+
+          pipeline.around_execution do |_, arg, execution|
+            arg[:arg] << " around before II"
+            execution.call
+            arg[:arg] << " around after II"
+          end
+
           pipeline.before_step do |_, arg|
             arg[:arg] << " before"
           end
@@ -330,7 +342,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'executes the callback' do
-        expect(subject.execute(arg: 'getsafe')).to eq('getsafe before the step * % => status: success')
+        expect(subject.execute(arg: 'getsafe')).to eq('getsafe around before I around before II before the step * % around after II around after I => status: success')
       end
     end
   end
