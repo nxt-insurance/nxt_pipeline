@@ -128,8 +128,22 @@ RSpec.describe NxtPipeline::Pipeline do
 
     it 'sets the status of the steps' do
       subject.execute(arg: 'hanna')
-
       expect(subject.steps.map(&:status)).to eq(%i[success skipped failed])
+    end
+
+    it 'sets execution_started_at on all steps' do
+      subject.execute(arg: 'hanna')
+      expect(subject.steps.map(&:execution_started_at)).to all(be_present)
+    end
+
+    it 'sets execution_finished_at on all steps' do
+      subject.execute(arg: 'hanna')
+      expect(subject.steps.map(&:execution_finished_at)).to all(be_present)
+    end
+
+    it 'sets execution_duration on all steps' do
+      subject.execute(arg: 'hanna')
+      expect(subject.steps.map(&:execution_duration)).to all(be_present)
     end
 
     it 'remembers the error on the step' do
