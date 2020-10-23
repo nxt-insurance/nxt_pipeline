@@ -28,11 +28,15 @@ module NxtPipeline
         set_mapped_options(changeset)
         guard_args = [changeset, self]
 
+        run_callbacks(:step, :before, changeset)
+
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          run_callbacks(:step, :before, changeset)
-          self.result = construct_result(changeset)
-          run_callbacks(:step, :after, changeset)
+          run_around_callbacks(changeset) do
+            set_result(changeset)
+          end
         end
+
+        run_callbacks(:step, :after, changeset)
 
         set_status
         result
@@ -58,8 +62,8 @@ module NxtPipeline
       pipeline.send(:run_callbacks, *args)
     end
 
-    def run_around_callbacks(*args, &block)
-
+    def run_around_callbacks(args, &block)
+      pipeline.send(:run_around_callbacks, :step, args, &block)
     end
 
     def evaluate_if_guard(args)
@@ -70,9 +74,9 @@ module NxtPipeline
       !execute_callable(unless_guard, args)
     end
 
-    def construct_result(changeset)
+    def set_result(changeset)
       args = [self, changeset]
-      execute_callable(constructor, args)
+      self.result = execute_callable(constructor, args)
     end
 
     def execute_callable(callable, args)

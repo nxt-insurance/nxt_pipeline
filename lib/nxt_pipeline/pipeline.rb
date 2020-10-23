@@ -89,8 +89,8 @@ module NxtPipeline
             )
           end
 
-          callback = find_error_callback(error)
-          raise unless callback && callback.continue_after_error?
+          error_callback = find_error_callback(error)
+          raise unless error_callback && error_callback.continue_after_error?
           handle_step_error(error)
           changeset
         end
