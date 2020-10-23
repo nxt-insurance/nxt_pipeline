@@ -1,8 +1,9 @@
 module NxtPipeline
   class Step
-    def initialize(argument, constructor, index, **opts)
+    def initialize(argument, constructor, index, pipeline, **opts)
       define_attr_readers(opts)
 
+      @pipeline = pipeline
       @argument = argument
       @index = index
       @opts = opts
@@ -28,7 +29,9 @@ module NxtPipeline
         guard_args = [changeset, self]
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
+          run_callbacks(:step, :before, changeset)
           self.result = construct_result(changeset)
+          run_callbacks(:step, :after, changeset)
         end
 
         set_status
@@ -49,7 +52,15 @@ module NxtPipeline
     private
 
     attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
-    attr_reader :constructor, :options_mapper
+    attr_reader :constructor, :options_mapper, :pipeline
+
+    def run_callbacks(*args)
+      pipeline.send(:run_callbacks, *args)
+    end
+
+    def run_around_callbacks(*args, &block)
+
+    end
 
     def evaluate_if_guard(args)
       execute_callable(if_guard, args)

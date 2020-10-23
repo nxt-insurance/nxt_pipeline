@@ -9,7 +9,7 @@ module NxtPipeline
         register(:around, [])
       end
 
-      register(:step, accessor) do
+      register(:step) do
         register(:before, [])
         register(:after, [])
         register(:around, [])
