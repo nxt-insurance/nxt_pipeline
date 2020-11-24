@@ -131,16 +131,135 @@ RSpec.describe NxtPipeline::Pipeline do
   end
 
   context 'step' do
-    context 'before execution' do
+    let(:change_set) { { acc: [] } }
 
+    context 'before step' do
+      before do
+        pipeline.configure do |pipeline|
+          pipeline.before_step do |_, change_set|
+            change_set[:acc] << 'before step 1'
+            change_set
+          end
+
+          pipeline.before_step do |_, change_set|
+            change_set[:acc] << 'before step 2'
+            change_set
+          end
+
+          pipeline.before_step do |_, change_set|
+            change_set[:acc] << 'before step 3'
+            change_set
+          end
+        end
+      end
+
+      it 'executes the callbacks in order' do
+        expect(subject).to eq([
+          "before step 1",
+          "before step 2",
+          "before step 3",
+          "step 1",
+          "before step 1",
+          "before step 2",
+          "before step 3",
+          "step 2",
+          "before step 1",
+          "before step 2",
+          "before step 3",
+          "step 3"
+        ])
+      end
     end
 
-    context 'around execution' do
+    context 'around step' do
+      before do
+        pipeline.configure do |pipeline|
+          pipeline.around_step do |_, change_set, execution|
+            change_set[:acc] << 'around step 1'
+            execution.call
+            change_set[:acc] << 'around step 1'
+            change_set
+          end
 
+          pipeline.around_step do |_, change_set, execution|
+            change_set[:acc] << 'around step 2'
+            execution.call
+            change_set[:acc] << 'around step 2'
+            change_set
+          end
+
+          pipeline.around_step do |_, change_set, execution|
+            change_set[:acc] << 'around step 3'
+            execution.call
+            change_set[:acc] << 'around step 3'
+            change_set
+          end
+        end
+      end
+
+      it 'executes the callbacks in order' do
+        expect(subject).to eq([
+          "around step 1",
+          "around step 2",
+          "around step 3",
+          "step 1",
+          "around step 3",
+          "around step 2",
+          "around step 1",
+          "around step 1",
+          "around step 2",
+          "around step 3",
+          "step 2",
+          "around step 3",
+          "around step 2",
+          "around step 1",
+          "around step 1",
+          "around step 2",
+          "around step 3",
+          "step 3",
+          "around step 3",
+          "around step 2",
+          "around step 1"
+        ])
+      end
     end
 
-    context 'after execution' do
+    context 'after step' do
+      before do
+        pipeline.configure do |pipeline|
+          pipeline.after_step do |_, change_set|
+            change_set[:acc] << 'after step 1'
+            change_set
+          end
 
+          pipeline.after_step do |_, change_set|
+            change_set[:acc] << 'after step 2'
+            change_set
+          end
+
+          pipeline.after_step do |_, change_set|
+            change_set[:acc] << 'after step 3'
+            change_set
+          end
+        end
+      end
+
+      it 'executes the callbacks in order' do
+        expect(subject).to eq([
+          "step 1",
+          "after step 1",
+          "after step 2",
+          "after step 3",
+          "step 2",
+          "after step 1",
+          "after step 2",
+          "after step 3",
+          "step 3",
+          "after step 1",
+          "after step 2",
+          "after step 3"
+        ])
+      end
     end
   end
 
