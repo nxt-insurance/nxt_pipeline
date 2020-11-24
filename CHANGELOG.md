@@ -1,3 +1,7 @@
+## nxt_pipeline 1.0.0 (24.11.2020)
+
+Replace after and before execute with proper callbacks
+
 ## nxt_pipeline 0.4.3 (October 20, 2020)
 
 Add new attribute readers on step object.
