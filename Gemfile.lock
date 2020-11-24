@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nxt_pipeline (0.4.3)
+    nxt_pipeline (1.0.0)
       activesupport
       nxt_registry
 
@@ -78,9 +78,9 @@ GEM
     shellany (0.0.1)
     thor (0.20.3)
     thread_safe (0.3.6)
-    tzinfo (1.2.7)
+    tzinfo (1.2.8)
       thread_safe (~> 0.1)
-    zeitwerk (2.4.0)
+    zeitwerk (2.4.1)
 
 PLATFORMS
   ruby
