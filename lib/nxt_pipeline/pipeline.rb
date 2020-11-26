@@ -162,18 +162,6 @@ module NxtPipeline
       callback_chain.call
     end
 
-    def before_execution_callbacks
-      callbacks.resolve!(:execution, :before)
-    end
-
-    def after_execution_callbacks
-      callbacks.resolve!(:execution, :after)
-    end
-
-    def around_execution_callbacks
-      callbacks.resolve!(:execution, :around)
-    end
-
     def callbacks
       @callbacks ||= NxtPipeline::Callbacks.new
     end
