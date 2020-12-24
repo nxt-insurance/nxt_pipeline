@@ -1,9 +1,10 @@
 module NxtPipeline
   class Step
-    def initialize(argument, constructor, index, pipeline, **opts)
+    def initialize(argument, constructor, index, pipeline, callbacks, **opts)
       define_attr_readers(opts)
 
       @pipeline = pipeline
+      @callbacks = callbacks
       @argument = argument
       @index = index
       @opts = opts
@@ -56,14 +57,14 @@ module NxtPipeline
     private
 
     attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
-    attr_reader :constructor, :options_mapper, :pipeline
+    attr_reader :constructor, :options_mapper, :pipeline, :callbacks
 
     def run_callbacks(*args)
-      pipeline.send(:run_callbacks, *args)
+      callbacks.run(pipeline, *args)
     end
 
     def run_around_callbacks(args, &block)
-      pipeline.send(:run_around_callbacks, :step, args, &block)
+      callbacks.run_around(pipeline, :step, args, &block)
     end
 
     def evaluate_if_guard(args)

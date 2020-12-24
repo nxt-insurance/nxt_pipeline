@@ -8,19 +8,13 @@ module NxtPipeline
       registry.resolve!(*path) << callback
     end
 
-    def run_callbacks(pipeline, type, kind, change_set)
+    def run(pipeline, type, kind, change_set)
       registry.resolve!(type, kind).each do |callback|
         run_callback(pipeline, callback, change_set)
       end
     end
 
-    def run_callback(pipeline, callback, change_set)
-      args = [pipeline, change_set]
-      args = args.take(callback.arity)
-      callback.call(*args)
-    end
-
-    def run_around_callbacks(pipeline, type, args, &execution)
+    def run_around(pipeline, type, args, &execution)
       around_callbacks = registry.resolve!(type, :around)
       return execution.call unless around_callbacks.any?
 
@@ -33,8 +27,16 @@ module NxtPipeline
 
     private
 
+    attr_reader :registry
+
+    def run_callback(pipeline, callback, change_set)
+      args = [pipeline, change_set]
+      args = args.take(callback.arity)
+      callback.call(*args)
+    end
+
     def build_registry
-      NxtRegistry::Registry.new do
+      NxtRegistry::Registry.new(:callbacks) do
         register(:execution) do
           register(:before, [])
           register(:after, [])
@@ -48,7 +50,5 @@ module NxtPipeline
         end
       end
     end
-
-    attr_reader :registry
   end
 end
