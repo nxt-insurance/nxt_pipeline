@@ -15,7 +15,7 @@ module NxtPipeline
       end
     end
 
-    def run_around(type, args, &execution)
+    def around(type, args, &execution)
       around_callbacks = registry.resolve!(type, :around)
       return execution.call unless around_callbacks.any?
 
