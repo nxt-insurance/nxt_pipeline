@@ -34,20 +34,20 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**changeset)
+    def execute(**change_set)
       track_execution_time do
-        set_mapped_options(changeset)
-        guard_args = [changeset, self]
+        set_mapped_options(change_set)
+        guard_args = [change_set, self]
 
-        callbacks.run(:before, :step, changeset)
+        callbacks.run(:before, :step, change_set)
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          callbacks.around(:step, changeset) do
-            set_result(changeset)
+          callbacks.around(:step, change_set) do
+            set_result(change_set)
           end
         end
 
-        callbacks.run(:after, :step, changeset)
+        callbacks.run(:after, :step, change_set)
 
         set_status
         result
@@ -58,9 +58,9 @@ module NxtPipeline
       raise
     end
 
-    def set_mapped_options(changeset)
+    def set_mapped_options(change_set)
       mapper = options_mapper || default_options_mapper
-      mapper_args = [changeset, self].take(mapper.arity)
+      mapper_args = [change_set, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
     end
 
@@ -77,8 +77,8 @@ module NxtPipeline
       !execute_callable(unless_guard, args)
     end
 
-    def set_result(changeset)
-      args = [self, changeset]
+    def set_result(change_set)
+      args = [self, change_set]
       self.result = execute_callable(constructor, args)
     end
 

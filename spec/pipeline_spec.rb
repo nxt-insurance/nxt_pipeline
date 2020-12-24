@@ -155,10 +155,9 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'adds methods to the error' do
       subject.execute(arg: 'hanna')
       argument_error = subject.steps.map(&:error).last
-
       expect(argument_error.details.logger).to eq(subject.logger)
       expect(argument_error.details.step.to_s).to eq('StepWithArgumentError')
-      expect(argument_error.details.changeset).to eq(arg: "HANNA")
+      expect(argument_error.details.change_set).to eq(arg: "HANNA")
     end
   end
 

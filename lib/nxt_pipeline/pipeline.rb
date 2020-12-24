@@ -69,34 +69,25 @@ module NxtPipeline
       steps << Step.new(argument, constructor, steps.count, self, callbacks, **opts)
     end
 
-    def execute(**changeset, &block)
+    def execute(**change_set, &block)
       reset
 
       configure(&block) if block_given?
-      callbacks.run( :before, :execution, changeset)
+      callbacks.run( :before, :execution, change_set)
 
-      result = callbacks.around :execution, changeset do
-        steps.inject(changeset) do |changeset, step|
-          execute_step(step, **changeset)
+      result = callbacks.around :execution, change_set do
+        steps.inject(change_set) do |change_set, step|
+          execute_step(step, **change_set)
         rescue StandardError => error
-          logger_for_error = logger
-
-          error.define_singleton_method :details do
-            OpenStruct.new(
-              changeset: changeset,
-              logger: logger_for_error,
-              step: step
-            )
-          end
-
+          decorate_error_with_details(error, change_set, step, logger)
           error_callback = find_error_callback(error)
           raise unless error_callback && error_callback.continue_after_error?
           handle_step_error(error)
-          changeset
+          change_set
         end
       end
 
-      callbacks.run( :after, :execution, changeset)
+      callbacks.run( :after, :execution, change_set)
       result
     rescue StandardError => error
       handle_step_error(error)
@@ -158,12 +149,12 @@ module NxtPipeline
       @default_constructor ||= constructors[default_constructor_name.to_sym]
     end
 
-    def execute_step(step, **changeset)
+    def execute_step(step, **change_set)
       self.current_step = step
-      self.current_arg = changeset
-      result = step.execute(**changeset)
+      self.current_arg = change_set
+      result = step.execute(**change_set)
       log_step(step)
-      result || changeset
+      result || change_set
     end
 
     def find_error_callback(error)
@@ -187,6 +178,17 @@ module NxtPipeline
 
     def default_step_resolvers
       [->(step_argument) { step_argument.is_a?(Symbol) && step_argument }]
+    end
+
+    def decorate_error_with_details(error, change_set, step, logger)
+      error.define_singleton_method :details do
+        OpenStruct.new(
+          change_set: change_set,
+          logger: logger,
+          step: step
+        )
+      end
+      error
     end
   end
 end
