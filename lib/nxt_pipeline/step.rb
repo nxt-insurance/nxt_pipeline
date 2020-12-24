@@ -60,11 +60,11 @@ module NxtPipeline
     attr_reader :constructor, :options_mapper, :pipeline, :callbacks
 
     def run_callbacks(*args)
-      callbacks.run(pipeline, *args)
+      callbacks.run(*args)
     end
 
     def run_around_callbacks(args, &block)
-      callbacks.run_around(pipeline, :step, args, &block)
+      callbacks.run_around(:step, args, &block)
     end
 
     def evaluate_if_guard(args)

@@ -146,15 +146,15 @@ module NxtPipeline
     private
 
     def run_callbacks(type, kind, changeset)
-      callbacks.run(self, type, kind, changeset)
+      callbacks.run(type, kind, changeset)
     end
 
     def run_around_callbacks(type, args, &execution)
-      callbacks.run_around(self, type, args, &execution)
+      callbacks.run_around(type, args, &execution)
     end
 
     def callbacks
-      @callbacks ||= NxtPipeline::Callbacks.new
+      @callbacks ||= NxtPipeline::Callbacks.new(pipeline: self)
     end
 
     attr_reader :error_callbacks, :constructors, :step_resolvers
