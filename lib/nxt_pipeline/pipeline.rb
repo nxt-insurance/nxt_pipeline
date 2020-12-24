@@ -120,56 +120,41 @@ module NxtPipeline
     alias :on_error :on_errors
 
     def before_step(&block)
-      callbacks.resolve!(:step, :before) << block
+      callbacks.register([:step, :before], block)
     end
 
     def after_step(&block)
-      callbacks.resolve!(:step, :after) << block
+      callbacks.register([:step, :after], block)
     end
 
     def around_step(&block)
-      callbacks.resolve!(:step, :around) << block
+      callbacks.register([:step, :around], block)
     end
 
     def before_execution(&block)
-      callbacks.resolve!(:execution, :before) << block
+      callbacks.register([:execution, :before], block)
     end
 
     def after_execution(&block)
-      callbacks.resolve!(:execution, :after) << block
+      callbacks.register([:execution, :after], block)
     end
 
     def around_execution(&block)
-      callbacks.resolve!(:execution, :around) << block
+      callbacks.register([:execution, :around], block)
     end
 
     private
 
     def run_callbacks(type, kind, changeset)
-      callbacks.resolve!(type, kind).each do |callback|
-        run_callback(callback, changeset)
-      end
+      callbacks.run_callbacks(self, type, kind, changeset)
     end
 
     def run_around_callbacks(type, args, &execution)
-      around_callbacks = callbacks.resolve!(type, :around)
-      return execution.call unless around_callbacks.any?
-
-      callback_chain = around_callbacks.reverse.inject(execution) do |previous, callback|
-        -> { callback.call(self, args, previous) }
-      end
-
-      callback_chain.call
+      callbacks.run_around_callbacks(self, type, args, &execution)
     end
 
     def callbacks
       @callbacks ||= NxtPipeline::Callbacks.new
-    end
-
-    def run_callback(callback, changeset)
-      args = [self, changeset]
-      args = args.take(callback.arity)
-      callback.call(*args)
     end
 
     attr_reader :error_callbacks, :constructors, :step_resolvers
