@@ -1,20 +1,21 @@
 module NxtPipeline
   class Callbacks
-    def initialize
+    def initialize(pipeline:)
       @registry = build_registry
+      @pipeline = pipeline
     end
 
     def register(path, callback)
       registry.resolve!(*path) << callback
     end
 
-    def run(pipeline, type, kind, change_set)
+    def run(type, kind, change_set)
       registry.resolve!(type, kind).each do |callback|
-        run_callback(pipeline, callback, change_set)
+        run_callback(callback, change_set)
       end
     end
 
-    def run_around(pipeline, type, args, &execution)
+    def run_around(type, args, &execution)
       around_callbacks = registry.resolve!(type, :around)
       return execution.call unless around_callbacks.any?
 
@@ -27,9 +28,9 @@ module NxtPipeline
 
     private
 
-    attr_reader :registry
+    attr_reader :registry, :pipeline
 
-    def run_callback(pipeline, callback, change_set)
+    def run_callback(callback, change_set)
       args = [pipeline, change_set]
       args = args.take(callback.arity)
       callback.call(*args)
