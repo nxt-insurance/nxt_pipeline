@@ -35,9 +35,9 @@ module NxtPipeline
       step_resolvers << block
     end
 
-    def set_default_constructor(name)
+    def set_default_constructor(default_constructor)
       raise_duplicate_default_constructor if default_constructor_name.present?
-      self.default_constructor_name = name
+      self.default_constructor_name = default_constructor
     end
 
     def raise_duplicate_default_constructor
@@ -46,8 +46,7 @@ module NxtPipeline
 
     def step(argument = nil, **opts, &block)
       constructor = if block_given?
-        # make type the :to_s of inline steps
-        # fall back to :inline if no type is given
+        # make type the :to_s of inline steps fall back to :inline if no type is given
         argument ||= :inline
         opts.reverse_merge!(to_s: argument)
         Constructor.new(:inline, **opts, &block)
@@ -66,7 +65,7 @@ module NxtPipeline
         end
       end
 
-      steps << Step.new(argument, constructor, steps.count, self, callbacks, **opts)
+      register_step(argument, constructor, callbacks, **opts)
     end
 
     def execute(**change_set, &block)
@@ -76,14 +75,12 @@ module NxtPipeline
       callbacks.run( :before, :execution, change_set)
 
       result = callbacks.around :execution, change_set do
-        steps.inject(change_set) do |change_set, step|
-          execute_step(step, **change_set)
+        steps.inject(change_set) do |set, step|
+          execute_step(step, **set)
         rescue StandardError => error
-          decorate_error_with_details(error, change_set, step, logger)
-          error_callback = find_error_callback(error)
-          raise unless error_callback && error_callback.continue_after_error?
-          handle_step_error(error)
-          change_set
+          decorate_error_with_details(error, set, step, logger)
+          handle_error_of_step(error)
+          set
         end
       end
 
@@ -92,6 +89,8 @@ module NxtPipeline
     rescue StandardError => error
       handle_step_error(error)
     end
+
+    alias_method :call, :execute
 
     def handle_step_error(error)
       log_step(current_step)
@@ -109,27 +108,27 @@ module NxtPipeline
     alias :on_error :on_errors
 
     def before_step(&block)
-      callbacks.register([:step, :before], block)
+      callbacks.register([:before, :step], block)
     end
 
     def after_step(&block)
-      callbacks.register([:step, :after], block)
+      callbacks.register([:after, :step], block)
     end
 
     def around_step(&block)
-      callbacks.register([:step, :around], block)
+      callbacks.register([:around, :step], block)
     end
 
     def before_execution(&block)
-      callbacks.register([:execution, :before], block)
+      callbacks.register([:before, :execution], block)
     end
 
     def after_execution(&block)
-      callbacks.register([:execution, :after], block)
+      callbacks.register([:after, :execution], block)
     end
 
     def around_execution(&block)
-      callbacks.register([:execution, :around], block)
+      callbacks.register([:around, :execution], block)
     end
 
     private
@@ -189,6 +188,20 @@ module NxtPipeline
         )
       end
       error
+    end
+
+    def register_step(argument, constructor, callbacks, **opts)
+      steps << Step.new(argument, constructor, steps.count, self, callbacks, **opts)
+    end
+
+    def handle_error_of_step(error)
+      error_callback = find_error_callback(error)
+      raise error unless error_callback.present? && error_callback.continue_after_error?
+
+      log_step(current_step)
+      raise error unless error_callback.present?
+
+      error_callback.call(current_step, current_arg, error)
     end
   end
 end
