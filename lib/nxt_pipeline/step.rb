@@ -18,7 +18,17 @@ module NxtPipeline
       @mapped_options = nil
     end
 
-    attr_reader :argument, :result, :status, :execution_started_at, :execution_finished_at, :execution_duration, :error, :opts, :index, :mapped_options
+    attr_reader :argument,
+      :result,
+      :status,
+      :execution_started_at,
+      :execution_finished_at,
+      :execution_duration,
+      :error,
+      :opts,
+      :index,
+      :mapped_options
+
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
@@ -29,15 +39,15 @@ module NxtPipeline
         set_mapped_options(changeset)
         guard_args = [changeset, self]
 
-        run_callbacks(:step, :before, changeset)
+        callbacks.run(:before, :step, changeset)
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          run_around_callbacks(changeset) do
+          callbacks.around(:step, changeset) do
             set_result(changeset)
           end
         end
 
-        run_callbacks(:step, :after, changeset)
+        callbacks.run(:after, :step, changeset)
 
         set_status
         result
@@ -58,14 +68,6 @@ module NxtPipeline
 
     attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
     attr_reader :constructor, :options_mapper, :pipeline, :callbacks
-
-    def run_callbacks(*args)
-      callbacks.run(*args)
-    end
-
-    def run_around_callbacks(args, &block)
-      callbacks.run_around(:step, args, &block)
-    end
 
     def evaluate_if_guard(args)
       execute_callable(if_guard, args)

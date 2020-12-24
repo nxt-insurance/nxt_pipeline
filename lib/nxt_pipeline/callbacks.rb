@@ -9,18 +9,18 @@ module NxtPipeline
       registry.resolve!(*path) << callback
     end
 
-    def run(type, kind, change_set)
-      registry.resolve!(type, kind).each do |callback|
+    def run(kind_of_callback, type, change_set)
+      registry.resolve!(type, kind_of_callback).each do |callback|
         run_callback(callback, change_set)
       end
     end
 
-    def run_around(type, args, &execution)
+    def around(type, change_set, &execution)
       around_callbacks = registry.resolve!(type, :around)
       return execution.call unless around_callbacks.any?
 
       callback_chain = around_callbacks.reverse.inject(execution) do |previous, callback|
-        -> { callback.call(pipeline, args, previous) }
+        -> { callback.call(pipeline, change_set, previous) }
       end
 
       callback_chain.call

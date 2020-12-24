@@ -73,9 +73,9 @@ module NxtPipeline
       reset
 
       configure(&block) if block_given?
-      run_callbacks(:execution, :before, changeset)
+      callbacks.run( :before, :execution, changeset)
 
-      result = run_around_callbacks :execution, changeset do
+      result = callbacks.around :execution, changeset do
         steps.inject(changeset) do |changeset, step|
           execute_step(step, **changeset)
         rescue StandardError => error
@@ -96,9 +96,7 @@ module NxtPipeline
         end
       end
 
-
-      run_callbacks(:execution, :after, changeset)
-
+      callbacks.run( :after, :execution, changeset)
       result
     rescue StandardError => error
       handle_step_error(error)
@@ -144,14 +142,6 @@ module NxtPipeline
     end
 
     private
-
-    def run_callbacks(type, kind, changeset)
-      callbacks.run(type, kind, changeset)
-    end
-
-    def run_around_callbacks(type, args, &execution)
-      callbacks.run_around(type, args, &execution)
-    end
 
     def callbacks
       @callbacks ||= NxtPipeline::Callbacks.new(pipeline: self)
