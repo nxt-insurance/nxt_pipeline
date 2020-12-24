@@ -66,7 +66,7 @@ module NxtPipeline
         end
       end
 
-      steps << Step.new(argument, constructor, steps.count, self, **opts)
+      steps << Step.new(argument, constructor, steps.count, self, callbacks, **opts)
     end
 
     def execute(**changeset, &block)
@@ -146,11 +146,11 @@ module NxtPipeline
     private
 
     def run_callbacks(type, kind, changeset)
-      callbacks.run_callbacks(self, type, kind, changeset)
+      callbacks.run(self, type, kind, changeset)
     end
 
     def run_around_callbacks(type, args, &execution)
-      callbacks.run_around_callbacks(self, type, args, &execution)
+      callbacks.run_around(self, type, args, &execution)
     end
 
     def callbacks
