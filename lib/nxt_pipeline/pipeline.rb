@@ -84,7 +84,7 @@ module NxtPipeline
         end
       end
 
-      callbacks.run( :after, :execution, change_set)
+      callbacks.run(:after, :execution, change_set)
       result
     rescue StandardError => error
       handle_step_error(error)
