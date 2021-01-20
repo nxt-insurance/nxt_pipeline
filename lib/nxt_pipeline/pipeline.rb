@@ -72,7 +72,7 @@ module NxtPipeline
       reset
 
       configure(&block) if block_given?
-      callbacks.run( :before, :execution, change_set)
+      callbacks.run(:before, :execution, change_set)
 
       result = callbacks.around :execution, change_set do
         steps.inject(change_set) do |set, step|
