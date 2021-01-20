@@ -176,24 +176,59 @@ NxtPipeline::Pipeline.new do |p|
 end
 ```
 
-### Before and After callbacks
+### Before, around and after callbacks
 
-You can also define callbacks that run before and after the `#execute` action. Both callback blocks get the pipeline instance (to access stuff like the `log`) and the argument of the pipeline yielded.
+You can also define callbacks :before, :around and :after each step and or the `#execute` method. You can also register
+multiple callbacks, but probably you want to keep them to a minimum to not end up in hell.
+
+#### Step callbacks
 
 ```ruby
 NxtPipeline::Pipeline.new do |p|
-  p.before_execute do |pipeline, arg:|
-    # Will be called from within #execute before entering the first step
-    # After any configure block though!
+  p.before_step do |_, change_set|
+    change_set[:acc] << 'before step 1'
+    change_set
   end
 
-  p.after_execute do |pipeline, arg:|
-    # Will be called from within #execute after executing last step
+  p.around_step do |_, change_set, execution|
+    change_set[:acc] << 'around step 1'
+    execution.call # you have to specify where in your callback you want to call the inner block
+    change_set[:acc] << 'around step 1'
+    change_set
+  end
+
+  p.after_step do |_, change_set|
+    change_set[:acc] << 'after step 1'
+    change_set
   end
 end
 ```
 
-Note that the `after_execute` callback will not be called, when an error is raised in one of the steps. See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
+#### Execution callbacks
+
+```ruby
+NxtPipeline::Pipeline.new do |p|
+  p.before_execution do |_, change_set|
+    change_set[:acc] << 'before execution 1'
+    change_set
+  end
+
+  p.around_execution do |_, change_set, execution|
+    change_set[:acc] << 'around execution 1'
+    execution.call # you have to specify where in your callback you want to call the inner block
+    change_set[:acc] << 'around execution 1'
+    change_set
+  end
+
+  p.after_execution do |_, change_set|
+    change_set[:acc] << 'after execution 1'
+    change_set
+  end
+end
+```
+
+Note that the `after_execute` callback will not be called in case a step raises an error. 
+See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
 
 ### Step resolvers
 
@@ -203,7 +238,6 @@ You can also use this if you are not fine with resolving the constructor from th
 
 
 ## Topics
-- Step orchestration (chainable steps)
 - Constructors should take arg as first and step as second arg
 
 ## Development

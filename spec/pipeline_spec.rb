@@ -155,10 +155,9 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'adds methods to the error' do
       subject.execute(arg: 'hanna')
       argument_error = subject.steps.map(&:error).last
-
       expect(argument_error.details.logger).to eq(subject.logger)
       expect(argument_error.details.step.to_s).to eq('StepWithArgumentError')
-      expect(argument_error.details.changeset).to eq(arg: "HANNA")
+      expect(argument_error.details.change_set).to eq(arg: "HANNA")
     end
   end
 
@@ -275,46 +274,6 @@ RSpec.describe NxtPipeline::Pipeline do
           raisor: :failed,
           reverse: :success
         )
-      end
-    end
-  end
-
-  context 'before_execute and after_execute callbacks' do
-    subject do
-      NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.step do |_, arg:|
-          { arg: arg }
-        end
-
-        pipeline.before_execute do |pipeline, opts|
-          opts[:arg].prepend('before ')
-        end
-
-        pipeline.after_execute do |pipeline, opts|
-          opts[:arg] << ' after'
-        end
-      end
-    end
-
-    it 'calls the callbacks in the correct order' do
-      expect(subject.execute(arg: 'getsafe')).to eq(arg: 'before getsafe after')
-    end
-
-    context 'with after_execute callback' do
-      subject do
-        NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.step to_s: 'anonymous_step' do |_, arg:|
-            arg
-          end
-
-          pipeline.after_execute do |pipeline, arg|
-            arg << " => status: #{pipeline.logger.log.dig('anonymous_step')}"
-          end
-        end
-      end
-
-      it 'executes the callback' do
-        expect(subject.execute(arg: 'getsafe')).to eq('getsafe => status: success')
       end
     end
   end

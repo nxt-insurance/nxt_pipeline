@@ -7,8 +7,8 @@ RSpec.describe NxtPipeline::Pipeline do
         end
 
         pipeline.step :proc,
-                      proc: ->(changeset, options) { changeset.merge(options) },
-                      map_options: ->(changeset) { { additional: 'options' } }
+                      proc: ->(change_set, options) { change_set.merge(options) },
+                      map_options: ->(change_set) { { additional: 'options' } }
       end
     end
 

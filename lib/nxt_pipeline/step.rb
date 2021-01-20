@@ -1,8 +1,10 @@
 module NxtPipeline
   class Step
-    def initialize(argument, constructor, index, **opts)
+    def initialize(argument, constructor, index, pipeline, callbacks, **opts)
       define_attr_readers(opts)
 
+      @pipeline = pipeline
+      @callbacks = callbacks
       @argument = argument
       @index = index
       @opts = opts
@@ -16,20 +18,36 @@ module NxtPipeline
       @mapped_options = nil
     end
 
-    attr_reader :argument, :result, :status, :execution_started_at, :execution_finished_at, :execution_duration, :error, :opts, :index, :mapped_options
+    attr_reader :argument,
+      :result,
+      :status,
+      :execution_started_at,
+      :execution_finished_at,
+      :execution_duration,
+      :error,
+      :opts,
+      :index,
+      :mapped_options
+
     attr_accessor :to_s
 
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**changeset)
+    def execute(**change_set)
       track_execution_time do
-        set_mapped_options(changeset)
-        guard_args = [changeset, self]
+        set_mapped_options(change_set)
+        guard_args = [change_set, self]
+
+        callbacks.run(:before, :step, change_set)
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          self.result = construct_result(changeset)
+          callbacks.around(:step, change_set) do
+            set_result(change_set)
+          end
         end
+
+        callbacks.run(:after, :step, change_set)
 
         set_status
         result
@@ -40,16 +58,16 @@ module NxtPipeline
       raise
     end
 
-    def set_mapped_options(changeset)
+    def set_mapped_options(change_set)
       mapper = options_mapper || default_options_mapper
-      mapper_args = [changeset, self].take(mapper.arity)
+      mapper_args = [change_set, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
     end
 
     private
 
     attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
-    attr_reader :constructor, :options_mapper
+    attr_reader :constructor, :options_mapper, :pipeline, :callbacks
 
     def evaluate_if_guard(args)
       execute_callable(if_guard, args)
@@ -59,9 +77,9 @@ module NxtPipeline
       !execute_callable(unless_guard, args)
     end
 
-    def construct_result(changeset)
-      args = [self, changeset]
-      execute_callable(constructor, args)
+    def set_result(change_set)
+      args = [self, change_set]
+      self.result = execute_callable(constructor, args)
     end
 
     def execute_callable(callable, args)
