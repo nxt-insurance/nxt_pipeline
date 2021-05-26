@@ -90,11 +90,11 @@ will be set to :inline.
 You can then execute the steps with:
 
 ```ruby
-pipeline.execute(arg: 'initial argument')
+pipeline.call(arg: 'initial argument')
 
 # Or run the steps directly using block syntax
 
-pipeline.execute(arg: 'initial argument') do |p|
+pipeline.call(arg: 'initial argument') do |p|
   p.step :service, service_class: MyServiceClass, to_s: 'First step'
   p.step :service, service_class: MyOtherServiceClass, to_s: 'Second step'
   p.step :job, job_class: MyJobClass # to_s is optional
@@ -106,7 +106,7 @@ end
 You can also directly execute a pipeline with:
 
 ```ruby
-NxtPipeline::Pipeline.execute(arg: 'initial argument') do |p|
+NxtPipeline::Pipeline.call(arg: 'initial argument') do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
@@ -140,7 +140,7 @@ You can also define guard clauses that take a proc to prevent the execution of a
 When the guard takes an argument the step argument is yielded.
 
  ```ruby
- pipeline.execute(arg: 'initial argument') do |p|
+ pipeline.call(arg: 'initial argument') do |p|
    p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
    p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
  end
@@ -227,7 +227,7 @@ NxtPipeline::Pipeline.new do |p|
 end
 ```
 
-Note that the `after_execute` callback will not be called in case a step raises an error. 
+Note that the `after_execution` callback will not be called in case a step raises an error. 
 See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
 
 ### Step resolvers

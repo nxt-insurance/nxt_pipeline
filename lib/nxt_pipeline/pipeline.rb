@@ -1,7 +1,12 @@
 module NxtPipeline
   class Pipeline
-    def self.execute(**opts, &block)
-      new(&block).execute(**opts)
+
+    class << self
+      def execute(**opts, &block)
+        new(&block).execute(**opts)
+      end
+
+      alias_method :call, :execute
     end
 
     def initialize(step_resolvers = default_step_resolvers, &block)

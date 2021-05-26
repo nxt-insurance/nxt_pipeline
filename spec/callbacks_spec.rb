@@ -19,7 +19,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
   end
 
-  subject { pipeline.execute(change_set)[:acc] }
+  subject { pipeline.call(change_set)[:acc] }
 
   context 'execution' do
     let(:change_set) { { acc: [] } }
