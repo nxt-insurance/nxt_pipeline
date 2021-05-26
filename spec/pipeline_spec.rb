@@ -222,18 +222,18 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when one handler was registered for multiple errors' do
       subject do
-        NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.constructor(:error_test) do |step, error:|
+        NxtPipeline::Pipeline.new do
+          constructor(:error_test) do |step, error:|
             step.raisor.call(error)
           end
 
-          pipeline.step :error_test, raisor: -> (error) { raise error }
+          step :error_test, raisor: -> (error) { raise error }
 
-          pipeline.on_errors CustomError, OtherCustomError do |step, opts, error|
+          on_errors CustomError, OtherCustomError do |step, opts, error|
             'common callback fired'
           end
 
-          pipeline.on_error do |step, opts, error|
+          on_error do |step, opts, error|
             raise error
           end
         end
@@ -248,20 +248,20 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when a handler was configured not to halt the pipeline' do
       subject do
-        NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.step :upcase do |_, word:|
+        NxtPipeline::Pipeline.new do
+          step :upcase do |_, word:|
             { word: word.upcase }
           end
 
-          pipeline.step :raisor do |_, word:|
+          step :raisor do |_, word:|
             raise ArgumentError
           end
 
-          pipeline.step :reverse do |_, word:|
+          step :reverse do |_, word:|
             { word: word.reverse }
           end
 
-          pipeline.on_error ArgumentError, halt_on_error: false do |step, opts, error|
+          on_error ArgumentError, halt_on_error: false do |step, opts, error|
             'Error handler which does not halt the pipeline'
           end
         end
