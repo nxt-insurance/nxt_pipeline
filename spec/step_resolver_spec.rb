@@ -36,7 +36,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'resolves the steps' do
-      expect(subject.execute(arg: 'hanna')).to eq(:HANNAHANNA)
+      expect(subject.call(arg: 'hanna')).to eq(:HANNAHANNA)
     end
   end
 end
