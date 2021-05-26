@@ -376,8 +376,8 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when :to_s option was provided' do
       before do
-        subject.configure do |p|
-          p.step to_s: 'What is my name' do |step, arg:|
+        subject.configure do
+          step to_s: 'What is my name' do |step, arg:|
             { arg: arg.prepend('My name is: ') }
           end
         end

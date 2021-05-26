@@ -24,6 +24,14 @@ module NxtPipeline
 
     alias_method :configure, :tap
 
+    def configure(&block)
+      if block.arity == 1
+        tap(&block)
+      else
+        instance_exec(&block)
+      end
+    end
+
     attr_accessor :logger, :steps
 
     def constructor(name, **opts, &constructor)

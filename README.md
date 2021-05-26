@@ -53,8 +53,8 @@ end
 
 # same with block syntax
 # You can use this to split up execution from configuration
-pipeline.configure do |p|
- p.constructor(:call) do |step, arg:|
+pipeline.configure do
+ constructor(:call) do |step, arg:|
    result = step.caller.new(arg).call
    result && { arg: result }
  end
