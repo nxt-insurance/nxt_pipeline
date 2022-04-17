@@ -2,11 +2,11 @@ RSpec.describe NxtPipeline::Pipeline do
   describe '#step_resovler' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.step_resolver do |argument|
+        pipeline.constructor_resolver do |argument|
           argument.is_a?(Class) && :service
         end
 
-        pipeline.step_resolver do |argument|
+        pipeline.constructor_resolver do |argument|
           argument.is_a?(String) && :dynamic
         end
 

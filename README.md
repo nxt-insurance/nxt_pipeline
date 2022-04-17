@@ -232,9 +232,9 @@ See the previous section (_Error callbacks_) for how to define callbacks that ru
 
 ### Step resolvers
 
-NxtPipeline is using so called step_resolvers to find the constructor for a given step by the arguments passed in.
+NxtPipeline is using so called constructor_resolvers to find the constructor for a given step by the arguments passed in.
 You can also use this if you are not fine with resolving the constructor from the step argument. Check out the
-`nxt_pipeline/spec/step_resolver_spec.rb` for examples how you can implement your own step_resolvers.
+`nxt_pipeline/spec/constructor_resolver_spec.rb` for examples how you can implement your own constructor_resolvers.
 
 
 ## Topics

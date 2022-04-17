@@ -12,7 +12,7 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @constructors = {}
-      @step_resolvers = step_resolvers
+      @constructor_resolvers = step_resolvers
 
       configure(&block) if block_given?
     end
@@ -31,8 +31,8 @@ module NxtPipeline
       set_default_constructor(name)
     end
 
-    def step_resolver(&block)
-      step_resolvers << block
+    def constructor_resolver(&block)
+      constructor_resolvers << block
     end
 
     def set_default_constructor(default_constructor)
@@ -51,7 +51,7 @@ module NxtPipeline
         opts.reverse_merge!(to_s: argument)
         Constructor.new(:inline, **opts, &block)
       else
-        constructor = step_resolvers.lazy.map do |resolver|
+        constructor = constructor_resolvers.lazy.map do |resolver|
           resolver.call(argument)
         end.find(&:itself)
 
@@ -61,7 +61,7 @@ module NxtPipeline
           argument ||= default_constructor_name
           default_constructor
         else
-          raise StandardError, "Could not resolve step from: #{argument}"
+          raise StandardError, "Could not resolve constructor for: #{argument}"
         end
       end
 
@@ -137,7 +137,7 @@ module NxtPipeline
       @callbacks ||= NxtPipeline::Callbacks.new(pipeline: self)
     end
 
-    attr_reader :error_callbacks, :constructors, :step_resolvers
+    attr_reader :error_callbacks, :constructors, :constructor_resolvers
     attr_accessor :current_step,
                   :current_arg,
                   :default_constructor_name
