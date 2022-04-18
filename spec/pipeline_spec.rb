@@ -30,23 +30,19 @@ RSpec.describe NxtPipeline::Pipeline do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:service) do |step, word:|
-          step.to_s = step.service_class.name
-          result = step.service_class.new(word: word).call
+          step.to_s = step.argument.name
+          result = step.argument.new(word: word).call
           result && { word: result }
         end
 
-        pipeline.step :service, service_class: StepOne
-        pipeline.step :service, service_class: StepSkipped
+        pipeline.step StepOne, constructor: :service
+        pipeline.step StepSkipped, constructor: :service
       end
     end
 
     it 'indexes the steps' do
-      expect(subject.steps.find { |s| s.service_class == StepOne }.index).to eq(0)
-      expect(subject.steps.find { |s| s.service_class == StepSkipped }.index).to eq(1)
-    end
-
-    it 'assigns the correct type to ech step' do
-      expect(subject.steps.map(&:argument)).to all(eq(:service))
+      expect(subject.steps.find { |s| s.argument == StepOne }.index).to eq(0)
+      expect(subject.steps.find { |s| s.argument == StepSkipped }.index).to eq(1)
     end
 
     it 'executes the steps' do
@@ -86,15 +82,15 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'when there is an error' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.constructor(:service) do |step, arg:|
-          step.name = step.service_class.to_s
-          result = step.service_class.new(word: arg).call
+        pipeline.constructor(:service, default: true) do |step, arg:|
+          step.name = step.argument.to_s
+          result = step.argument.new(word: arg).call
           result && { arg: result }
         end
 
-        pipeline.step :service, service_class: StepOne
-        pipeline.step :service, service_class: StepSkipped, to_s: 'This step was skipped'
-        pipeline.step :service, service_class: StepWithArgumentError
+        pipeline.step StepOne
+        pipeline.step StepSkipped, to_s: 'This step was skipped'
+        pipeline.step StepWithArgumentError
 
         pipeline.on_error ArgumentError do |step, opts, error|
           "Step #{step} was called with #{opts} and failed with #{error.class}"
@@ -429,18 +425,21 @@ RSpec.describe NxtPipeline::Pipeline do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:adder) do |step, number:|
-          { number: step.adder.call(number) }
+          { number: step.argument.call(number) }
         end
 
         pipeline.constructor(:multiplier) do |step, number:|
-          { number: step.multiplier.call(number: number) }
+          { number: step.argument.call(number: number) }
         end
 
-        pipeline.step :adder, adder: -> (number) { number + 1 }
-        pipeline.step :multiplier, multiplier: -> (number:) { number * 2 }
-        pipeline.step :adder, adder: -> (number) { number + 2 }
+        pipeline.step :adder do |_, number:|
+          { number: number + 1 }
+        end
 
-        pipeline.step do |_, number:|
+        pipeline.step -> (number:) { number * 2 }, constructor: :multiplier
+        pipeline.step -> (number) { number + 2 }, constructor: :adder
+
+        pipeline.step :inline do |_, number:|
           { number: number * 3 }
         end
 
@@ -485,7 +484,7 @@ RSpec.describe NxtPipeline::Pipeline do
   describe '.execute' do
     subject do
       NxtPipeline::Pipeline.execute(arg: 'hanna') do |pipeline|
-        pipeline.step do |_, arg:|
+        pipeline.step :test do |_, arg:|
           arg.upcase
         end
       end

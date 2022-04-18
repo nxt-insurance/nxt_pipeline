@@ -44,25 +44,25 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
-    def step(argument = nil, **opts, &block)
-      constructor = if block_given?
-        # make type the :to_s of inline steps fall back to :inline if no type is given
-        argument ||= :inline
-        opts.reverse_merge!(to_s: argument)
-        Constructor.new(:inline, **opts, &block)
-      else
-        constructor = constructor_resolvers.lazy.map do |resolver|
-          resolver.call(argument)
-        end.find(&:itself)
 
-        if constructor
-          constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" }
+    def step(argument, constructor: nil, **opts, &block)
+
+      resolved_constructor = constructor_resolvers.lazy.map do |resolver|
+        resolver.call(argument)
+      end.find(&:itself)
+
+      constructor = if constructor.nil?
+        # First we try to resolve it from the argument
+        if resolved_constructor
+          constructors.fetch(resolved_constructor) { raise KeyError, "No step :#{argument} registered" }
+        elsif block_given?
+          opts.reverse_merge!(to_s: argument)
+          Constructor.new(:inline, **opts, &block)
         elsif default_constructor
-          argument ||= default_constructor_name
           default_constructor
-        else
-          raise StandardError, "Could not resolve constructor for: #{argument}"
         end
+      else
+        constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" }
       end
 
       register_step(argument, constructor, callbacks, **opts)
@@ -171,12 +171,8 @@ module NxtPipeline
       self.current_step = nil
     end
 
-    def raise_reserved_type_inline_error
-      raise ArgumentError, 'Type :inline is reserved for inline steps!'
-    end
-
     def default_step_resolvers
-      [->(step_argument) { step_argument.is_a?(Symbol) && step_argument }]
+      [->(_) { nil }]
     end
 
     def decorate_error_with_details(error, change_set, step, logger)

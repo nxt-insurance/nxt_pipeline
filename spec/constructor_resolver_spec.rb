@@ -29,7 +29,7 @@ RSpec.describe NxtPipeline::Pipeline do
         pipeline.step 'multiply'
         pipeline.step 'symbolize'
 
-        pipeline.step do |step, arg:|
+        pipeline.step :inline do |step, arg:|
           arg
         end
       end

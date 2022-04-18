@@ -16,7 +16,7 @@ RSpec.describe NxtPipeline::Pipeline do
   subject do
     NxtPipeline::Pipeline.new do |pipeline|
       pipeline.constructor(:service, default: true) do |step, **opts|
-        step.service_class.new(**opts).call
+        step.argument.new(**opts).call
       end
     end
   end
@@ -26,7 +26,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: 'hanna') do |p|
-            p.step service_class: StepOne, if: -> { false }
+            p.step StepOne, constructor: :service, if: -> { false }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -38,7 +38,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: false) do |p|
-            p.step service_class: StepOne, if: -> (word:) { word }
+            p.step StepOne, if: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -50,7 +50,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: false) do |p|
-            p.step service_class: StepOne, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
+            p.step StepOne, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -64,7 +64,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: 'hanna') do |p|
-            p.step service_class: StepOne, unless: -> { true }
+            p.step StepOne, unless: -> { true }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -76,7 +76,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: true) do |p|
-            p.step service_class: StepOne, unless: -> (word:) { word }
+            p.step StepOne, unless: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -88,7 +88,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.execute(word: true) do |p|
-            p.step service_class: StepOne, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
+            p.step StepOne, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
