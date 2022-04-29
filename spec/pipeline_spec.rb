@@ -260,9 +260,9 @@ RSpec.describe NxtPipeline::Pipeline do
       it 'executes both steps' do
         expect(subject.execute(word: 'hello')).to eq(word: "OLLEH")
         expect(subject.logger.log).to eq(
-          upcase: :success,
-          raisor: :failed,
-          reverse: :success
+          'upcase' => :success,
+          'raisor' => :failed,
+          'reverse' => :success
         )
       end
     end
@@ -303,18 +303,13 @@ RSpec.describe NxtPipeline::Pipeline do
           { arg: step.transformer.call(arg) }
         end
 
-        pipeline.step transformer: -> (arg) { arg.upcase }
-        pipeline.step transformer: -> (arg) { arg.chars.join('_') }
+        pipeline.step :upcase, transformer: -> (arg) { arg.upcase }
+        pipeline.step :join, transformer: -> (arg) { arg.chars.join('_') }
       end
     end
 
     it 'executes the steps' do
       expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
-    end
-
-    it 'assigns the argument of the default constructor to the steps' do
-      subject.execute(arg: 'hanna')
-      expect(subject.steps.map(&:argument)).to all(eq(:proc))
     end
 
     context 'when defined multiple times' do
@@ -337,11 +332,11 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'steps with blocks' do
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.step do |step, arg:|
+        pipeline.step :first_step do |_, arg:|
           { arg: arg.upcase }
         end
 
-        pipeline.step :second_step do |step, arg:|
+        pipeline.step :second_step do |_, arg:|
           { arg: arg.chars.join('_') }
         end
       end
@@ -354,20 +349,20 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'logs the steps' do
       subject.execute(arg: 'hanna')
       # fallback to type :inline for inline constructors without type
-      expect(subject.logger.log).to eq(inline: :success, second_step: :success)
+      expect(subject.logger.log).to eq('first_step' => :success, 'second_step' => :success)
     end
 
     it 'logs the result for each step' do
       subject.execute(arg: 'hanna')
 
-      expect(subject.steps.find { |s| s.argument == :inline }.result).to eq(arg: 'HANNA')
+      expect(subject.steps.find { |s| s.argument == :first_step }.result).to eq(arg: 'HANNA')
       expect(subject.steps.find { |s| s.argument == :second_step }.result).to eq(arg: 'H_A_N_N_A')
     end
 
     context 'when :to_s option was provided' do
       before do
         subject.configure do |p|
-          p.step to_s: 'What is my name' do |step, arg:|
+          p.step'Argument', to_s: 'What is my name' do |step, arg:|
             { arg: arg.prepend('My name is: ') }
           end
         end
@@ -391,7 +386,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
       def pipeline
         NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.step do |_, arg:|
+          pipeline.step :upcase do |_, arg:|
             { arg: transform_upcase(arg) }
           end
         end
@@ -414,7 +409,7 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'logger' do
     class CustomLogger
       def call(step)
-        log << step.argument
+        log << step.to_s
       end
 
       def log
@@ -436,8 +431,8 @@ RSpec.describe NxtPipeline::Pipeline do
           { number: number + 1 }
         end
 
-        pipeline.step -> (number:) { number * 2 }, constructor: :multiplier
-        pipeline.step -> (number) { number + 2 }, constructor: :adder
+        pipeline.step -> (number:) { number * 2 }, constructor: :multiplier, to_s: :multiplier
+        pipeline.step -> (number) { number + 2 }, constructor: :adder, to_s: :adder
 
         pipeline.step :inline do |_, number:|
           { number: number * 3 }
@@ -451,9 +446,9 @@ RSpec.describe NxtPipeline::Pipeline do
       end
     end
 
-    it 'logs the step with the customer logger' do
+    it 'logs the step with the custom logger' do
       expect(subject.execute(number: 5)).to eq(number: 37)
-      expect(subject.logger.log).to eq(%i[adder multiplier adder inline last_step])
+      expect(subject.logger.log).to eq(["adder", :multiplier, :adder, "inline", "last_step"])
     end
   end
 

@@ -29,7 +29,7 @@ module NxtPipeline
       :index,
       :mapped_options
 
-    attr_accessor :to_s
+    attr_writer :to_s
 
     alias_method :name=, :to_s=
     alias_method :name, :to_s
@@ -62,6 +62,10 @@ module NxtPipeline
       mapper = options_mapper || default_options_mapper
       mapper_args = [change_set, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
+    end
+
+    def to_s
+      @to_s.to_s
     end
 
     private

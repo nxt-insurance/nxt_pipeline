@@ -4,7 +4,7 @@ module NxtPipeline
       new(&block).execute(**opts)
     end
 
-    def initialize(step_resolvers = default_step_resolvers, &block)
+    def initialize(resolvers = [], &block)
       @steps = []
       @error_callbacks = []
       @logger = Logger.new
@@ -12,7 +12,7 @@ module NxtPipeline
       @current_arg = nil
       @default_constructor_name = nil
       @constructors = {}
-      @constructor_resolvers = step_resolvers
+      @constructor_resolvers = resolvers
 
       configure(&block) if block_given?
     end
@@ -44,28 +44,43 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
-
     def step(argument, constructor: nil, **opts, &block)
 
-      resolved_constructor = constructor_resolvers.lazy.map do |resolver|
-        resolver.call(argument)
-      end.find(&:itself)
-
-      constructor = if constructor.nil?
-        # First we try to resolve it from the argument
-        if resolved_constructor
-          constructors.fetch(resolved_constructor) { raise KeyError, "No step :#{argument} registered" }
-        elsif block_given?
-          opts.reverse_merge!(to_s: argument)
-          Constructor.new(:inline, **opts, &block)
-        elsif default_constructor
-          default_constructor
-        end
-      else
-        constructor && constructors.fetch(constructor) { raise KeyError, "No step :#{argument} registered" }
+      if constructor.present? and block_given?
+        msg = "Either specify a block or a constructor but not both"
+        raise ArgumentError, msg
       end
 
-      register_step(argument, constructor, callbacks, **opts)
+      opts.reverse_merge!(to_s: argument.to_s)
+
+      if constructor.present?
+        if constructor.respond_to?(:call)
+          resolved_constructor = Constructor.new(:inline, **opts, &constructor)
+        else
+          resolved_constructor = constructors.fetch(constructor) { raise ArgumentError, "No constructor defined for #{constructor}" }
+        end
+      elsif block_given?
+        resolved_constructor = Constructor.new(:inline, **opts, &block)
+      else
+        resolvers = constructor_resolvers.any? ? constructor_resolvers : default_constructor_resolver
+
+        constructor = resolvers.map do |resolver|
+          resolver.call(argument, **opts)
+        end.find(&:itself)
+
+        # TODO: Make clear that resolver was used
+        resolved_constructor = constructors[constructor]
+
+        unless resolved_constructor.present?
+          if default_constructor.present?
+            resolved_constructor = default_constructor
+          else
+            raise ArgumentError, "Could not resolve any constructor for #{argument}, #{opts}"
+          end
+        end
+      end
+
+      register_step(argument, resolved_constructor, callbacks, **opts)
     end
 
     def execute(**change_set, &block)
@@ -171,8 +186,8 @@ module NxtPipeline
       self.current_step = nil
     end
 
-    def default_step_resolvers
-      [->(_) { nil }]
+    def default_constructor_resolver
+      [->(argument, _) { argument }]
     end
 
     def decorate_error_with_details(error, change_set, step, logger)
