@@ -374,6 +374,29 @@ RSpec.describe NxtPipeline::Pipeline do
     end
   end
 
+  context 'when the argument responds to call' do
+    subject do
+      def times_two(_, arg:)
+        { arg: arg * 2 }
+      end
+
+      NxtPipeline::Pipeline.new do |pipeline|
+        pipeline.step -> (_, arg:) { { arg: arg.upcase } }
+        pipeline.step -> (_, arg:) { { arg: arg.chars.join('_') } }
+        pipeline.step method(:times_two).to_proc
+      end
+    end
+
+    it 'executes the steps' do
+      expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_AH_A_N_N_A')
+    end
+
+    it 'logs the steps' do
+      subject.execute(arg: 'hanna')
+      expect(subject.logger.log).to eq('0' => :success, '1' => :success, '2' => :success)
+    end
+  end
+
   context 'when used inside a class' do
     class Transformer
       def initialize(string)

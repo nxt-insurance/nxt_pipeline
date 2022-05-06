@@ -51,7 +51,8 @@ module NxtPipeline
         raise ArgumentError, msg
       end
 
-      opts.reverse_merge!(to_s: argument.to_s)
+      to_s = argument.is_a?(Proc) ? steps.count.to_s : argument.to_s
+      opts.reverse_merge!(to_s: to_s)
 
       if constructor.present?
         if constructor.respond_to?(:call)
@@ -72,7 +73,9 @@ module NxtPipeline
         resolved_constructor = constructors[constructor]
 
         unless resolved_constructor.present?
-          if default_constructor.present?
+          if argument.respond_to?(:call)
+            resolved_constructor = Constructor.new(:inline, **opts, &argument)
+          elsif default_constructor.present?
             resolved_constructor = default_constructor
           else
             raise ArgumentError, "Could not resolve any constructor for #{argument}, #{opts}"
