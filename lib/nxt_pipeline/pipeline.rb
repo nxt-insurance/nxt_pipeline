@@ -51,7 +51,17 @@ module NxtPipeline
         raise ArgumentError, msg
       end
 
-      to_s = argument.is_a?(Proc) ? steps.count.to_s : argument.to_s
+      to_s = if opts[:to_s].present?
+        opts[:to_s] = opts[:to_s].to_s
+      else
+        if argument.is_a?(Proc) || argument.is_a?(Method)
+          steps.count.to_s
+        else
+          argument.to_s
+        end
+      end
+
+
       opts.reverse_merge!(to_s: to_s)
 
       if constructor.present?
@@ -157,8 +167,8 @@ module NxtPipeline
 
     attr_reader :error_callbacks, :constructors, :constructor_resolvers
     attr_accessor :current_step,
-                  :current_arg,
-                  :default_constructor_name
+      :current_arg,
+      :default_constructor_name
 
     def default_constructor
       return unless default_constructor_name

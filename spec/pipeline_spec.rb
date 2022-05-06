@@ -383,7 +383,7 @@ RSpec.describe NxtPipeline::Pipeline do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.step -> (_, arg:) { { arg: arg.upcase } }
         pipeline.step -> (_, arg:) { { arg: arg.chars.join('_') } }
-        pipeline.step method(:times_two).to_proc
+        pipeline.step method(:times_two)
       end
     end
 
@@ -471,7 +471,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
     it 'logs the step with the custom logger' do
       expect(subject.execute(number: 5)).to eq(number: 37)
-      expect(subject.logger.log).to eq(["adder", :multiplier, :adder, "inline", "last_step"])
+      expect(subject.logger.log).to eq(["adder", 'multiplier', 'adder', "inline", "last_step"])
     end
   end
 
