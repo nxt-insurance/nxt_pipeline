@@ -84,7 +84,11 @@ module NxtPipeline
 
         unless resolved_constructor.present?
           if argument.respond_to?(:call)
-            resolved_constructor = Constructor.new(:inline, **opts, &argument)
+            if argument.is_a?(Proc)
+              resolved_constructor = Constructor.new(:inline, **opts, &argument)
+            else
+              # TODO: Constructor for classes that respond to call
+            end
           elsif default_constructor.present?
             resolved_constructor = default_constructor
           else

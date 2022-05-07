@@ -2,7 +2,7 @@
 
 # NxtPipeline
 
-nxt_pipeline provides a DSL to define pipeline classes which take an object and pass it through multiple steps which can read or modify the object.
+The idea of nxt_pipeline is to provide the functionality to reduce over service objects and callables in general. 
 
 ## Installation
 
@@ -24,24 +24,58 @@ Or install it yourself as:
 
 ### Constructors
 
-First you probably want to configure a pipeline so that it can execute your steps.
-Therefore you want to define constructors for your steps. Constructors take a name
-as the first argument and step options as the second. All step options are being exposed
-by the step yielded to the constructor.
+In order to reduce over your service objects you have to define constructors so that the pipeline knows how to execute
+each step. Consider the following pipelines that processes an array of strings, 
 
 ```ruby
-pipeline = NxtPipeline::Pipeline.new do |p|
-  # Add a named constructor that will be used to execute your steps later
-  # All options that you pass in your step will be available through accessors in your constructor
-  # You can call :to_s on a step to set it by default. You can later overwrite at execution for each step if needed.
-  p.constructor(:service, default: true) do |step, arg:|
-    step.to_s = step.service_class.to_s
-    result = step.service_class.new(options: arg).call
-    result && { arg: result }
+class Upcaser
+  def initialize(strings)
+    @strings = strings
   end
 
-  p.constructor(:job) do |step, arg:|
-    step.job_class.perform_later(*arg) && { arg: arg }
+  def call
+    @strings.map(&:upcase)
+  end
+end
+
+class Stripper
+  def initialize(strings)
+    @strings = strings
+  end
+
+  def call
+    @strings.map(&:strip)
+  end
+end
+
+class Compacter
+  def initialize(strings)
+    @strings = strings
+  end
+
+  def call
+    @strings.reject(&:blank?)
+  end
+end
+
+subject do
+  NxtPipeline::Pipeline.new do |p|
+    p.constructor(:service, default: true) do |step, arg:|
+      result = step.argument.new(arg).call
+      result && { arg: result }
+    end
+
+    p.step Compacter
+    p.step Stripper
+    p.step Upcaser
+  end
+end
+
+# In case your service objects already implement call there is no need to define constructors as long as they 
+# all use the same input arguments
+class Service
+  def self.call(*args)
+    new(*args).call
   end
 end
 
