@@ -46,18 +46,18 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the steps' do
-      expect(subject.execute(word: 'hanna')).to eq(word: 'HANNA')
+      expect(subject.call(word: 'hanna')).to eq(word: 'HANNA')
     end
 
     it 'remembers the results of the steps on the steps' do
-      subject.execute(word: 'hanna')
+      subject.call(word: 'hanna')
 
       expect(subject.steps.first.result).to eq(word: 'HANNA')
       expect(subject.steps.second.result).to be_nil
     end
 
     it 'logs the steps' do
-      subject.execute(word: 'hanna')
+      subject.call(word: 'hanna')
 
       expect(subject.logger.log).to eq({"StepOne"=>:success, "StepSkipped"=>:skipped})
     end
@@ -103,11 +103,11 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the callback' do
-      expect(subject.execute(arg: 'hanna')).to eq('Step StepWithArgumentError was called with {:arg=>"HANNA"} and failed with ArgumentError')
+      expect(subject.call(arg: 'hanna')).to eq('Step StepWithArgumentError was called with {:arg=>"HANNA"} and failed with ArgumentError')
     end
 
     it 'logs the steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
 
       expect(subject.logger.log).to eq(
         "StepOne" => :success,
@@ -117,33 +117,33 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'sets the status of the steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       expect(subject.steps.map(&:status)).to eq(%i[success skipped failed])
     end
 
     it 'sets execution_started_at on all steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       expect(subject.steps.map(&:execution_started_at)).to all(be_present)
     end
 
     it 'sets execution_finished_at on all steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       expect(subject.steps.map(&:execution_finished_at)).to all(be_present)
     end
 
     it 'sets execution_duration on all steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       expect(subject.steps.map(&:execution_duration)).to all(be_present)
     end
 
     it 'remembers the error on the step' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
 
       expect(subject.steps.map(&:error)).to match([nil, nil, be_a(ArgumentError)])
     end
 
     it 'adds methods to the error' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       argument_error = subject.steps.map(&:error).last
       expect(argument_error.details.logger).to eq(subject.logger)
       expect(argument_error.details.step.to_s).to eq('StepWithArgumentError')
@@ -175,9 +175,9 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the first matching callback' do
-      expect(subject.execute(error: OtherCustomError)).to eq('other_custom_error callback fired')
-      expect(subject.execute(error: CustomError)).to eq('custom_error callback fired')
-      expect(subject.execute(error: ArgumentError)).to eq('all errors inheriting from standard error callback fired')
+      expect(subject.call(error: OtherCustomError)).to eq('other_custom_error callback fired')
+      expect(subject.call(error: CustomError)).to eq('custom_error callback fired')
+      expect(subject.call(error: ArgumentError)).to eq('all errors inheriting from standard error callback fired')
     end
 
     context 'when the more common handler was registered before the more specific handler' do
@@ -204,9 +204,9 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'executes the first matching callback' do
-        expect(subject.execute(error: OtherCustomError)).to eq('custom_error callback fired')
-        expect(subject.execute(error: CustomError)).to eq('custom_error callback fired')
-        expect { subject.execute(error: ArgumentError) }.to raise_error(ArgumentError)
+        expect(subject.call(error: OtherCustomError)).to eq('custom_error callback fired')
+        expect(subject.call(error: CustomError)).to eq('custom_error callback fired')
+        expect { subject.call(error: ArgumentError) }.to raise_error(ArgumentError)
       end
     end
 
@@ -230,9 +230,9 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'triggers the handler for all errors' do
-        expect(subject.execute(error: CustomError)).to eq('common callback fired')
-        expect(subject.execute(error: OtherCustomError)).to eq('common callback fired')
-        expect { subject.execute(error: ArgumentError) }.to raise_error(ArgumentError)
+        expect(subject.call(error: CustomError)).to eq('common callback fired')
+        expect(subject.call(error: OtherCustomError)).to eq('common callback fired')
+        expect { subject.call(error: ArgumentError) }.to raise_error(ArgumentError)
       end
     end
 
@@ -258,7 +258,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       it 'executes both steps' do
-        expect(subject.execute(word: 'hello')).to eq(word: "OLLEH")
+        expect(subject.call(word: 'hello')).to eq(word: "OLLEH")
         expect(subject.logger.log).to eq(
           'upcase' => :success,
           'raisor' => :failed,
@@ -288,7 +288,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the steps' do
-      expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A_H_A_N_N_A')
+      expect(subject.call(arg: 'hanna')).to eq(arg: 'H_A_N_N_A_H_A_N_N_A')
     end
 
     it 'assigns the correct arguments' do
@@ -309,7 +309,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the steps' do
-      expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
+      expect(subject.call(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
     end
 
     context 'when defined multiple times' do
@@ -343,17 +343,17 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the steps' do
-      expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
+      expect(subject.call(arg: 'hanna')).to eq(arg: 'H_A_N_N_A')
     end
 
     it 'logs the steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       # fallback to type :inline for inline constructors without type
       expect(subject.logger.log).to eq('first_step' => :success, 'second_step' => :success)
     end
 
     it 'logs the result for each step' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
 
       expect(subject.steps.find { |s| s.argument == :first_step }.result).to eq(arg: 'HANNA')
       expect(subject.steps.find { |s| s.argument == :second_step }.result).to eq(arg: 'H_A_N_N_A')
@@ -388,11 +388,11 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the steps' do
-      expect(subject.execute(arg: 'hanna')).to eq(arg: 'H_A_N_N_AH_A_N_N_A')
+      expect(subject.call(arg: 'hanna')).to eq(arg: 'H_A_N_N_AH_A_N_N_A')
     end
 
     it 'logs the steps' do
-      subject.execute(arg: 'hanna')
+      subject.call(arg: 'hanna')
       expect(subject.logger.log).to eq('0' => :success, '1' => :success, '2' => :success)
     end
   end
@@ -404,7 +404,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       def call
-        pipeline.execute(arg: @string)
+        pipeline.call(arg: @string)
       end
 
       def pipeline
@@ -470,7 +470,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'logs the step with the custom logger' do
-      expect(subject.execute(number: 5)).to eq(number: 37)
+      expect(subject.call(number: 5)).to eq(number: 37)
       expect(subject.logger.log).to eq(["adder", 'multiplier', 'adder', "inline", "last_step"])
     end
   end
@@ -487,7 +487,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'configures the pipeline' do
-      expect(subject.execute(arg: 'hanna')).to eq(arg: 'HANNA')
+      expect(subject.call(arg: 'hanna')).to eq(arg: 'HANNA')
     end
 
     it 'returns itself' do
@@ -499,9 +499,9 @@ RSpec.describe NxtPipeline::Pipeline do
     end
   end
 
-  describe '.execute' do
+  describe '.call' do
     subject do
-      NxtPipeline::Pipeline.execute(arg: 'hanna') do |pipeline|
+      NxtPipeline::Pipeline.call(arg: 'hanna') do |pipeline|
         pipeline.step :test do |_, arg:|
           arg.upcase
         end

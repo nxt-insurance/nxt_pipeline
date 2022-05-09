@@ -25,7 +25,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes no arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: 'hanna') do |p|
+          subject.call(word: 'hanna') do |p|
             p.step StepOne, constructor: :service, if: -> { false }
           end
 
@@ -37,7 +37,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes a single arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: false) do |p|
+          subject.call(word: false) do |p|
             p.step StepOne, if: -> (word:) { word }
           end
 
@@ -49,7 +49,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes two arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: false) do |p|
+          subject.call(word: false) do |p|
             p.step StepOne, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
@@ -63,7 +63,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes no arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: 'hanna') do |p|
+          subject.call(word: 'hanna') do |p|
             p.step StepOne, unless: -> { true }
           end
 
@@ -75,7 +75,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes a single arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: true) do |p|
+          subject.call(word: true) do |p|
             p.step StepOne, unless: -> (word:) { word }
           end
 
@@ -87,7 +87,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when the guard takes two arguments' do
       context 'and the guard claus applies' do
         it 'skips the step' do
-          subject.execute(word: true) do |p|
+          subject.call(word: true) do |p|
             p.step StepOne, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 

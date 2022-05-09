@@ -13,7 +13,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'passes the mapped options to the constructor' do
-      expect(subject.execute(original: 'options')).to eq(original: 'options', additional: 'options')
+      expect(subject.call(original: 'options')).to eq(original: 'options', additional: 'options')
     end
   end
 end

@@ -1,7 +1,7 @@
 module NxtPipeline
   class Pipeline
-    def self.execute(**opts, &block)
-      new(&block).execute(**opts)
+    def self.call(**opts, &block)
+      new(&block).call(**opts)
     end
 
     def initialize(resolvers = [], &block)
@@ -44,11 +44,12 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
-    def steps(steps, &block)
-      steps.each do |args|
-        step(args.first)
-      end
-    end
+    # TODO: Multi step syntax
+    # def steps(steps, &block)
+    #   steps.each do |args|
+    #     step(args.first)
+    #   end
+    # end
 
     def step(argument, constructor: nil, **opts, &block)
 
@@ -102,7 +103,7 @@ module NxtPipeline
       register_step(argument, resolved_constructor, callbacks, **opts)
     end
 
-    def execute(**change_set, &block)
+    def call(**change_set, &block)
       reset
 
       configure(&block) if block_given?
@@ -110,7 +111,7 @@ module NxtPipeline
 
       result = callbacks.around :execution, change_set do
         steps.inject(change_set) do |set, step|
-          execute_step(step, **set)
+          call_step(step, **set)
         rescue StandardError => error
           decorate_error_with_details(error, set, step, logger)
           handle_error_of_step(error)
@@ -123,8 +124,6 @@ module NxtPipeline
     rescue StandardError => error
       handle_step_error(error)
     end
-
-    alias_method :call, :execute
 
     def handle_step_error(error)
       log_step(current_step)
@@ -182,10 +181,10 @@ module NxtPipeline
       @default_constructor ||= constructors[default_constructor_name.to_sym]
     end
 
-    def execute_step(step, **change_set)
+    def call_step(step, **change_set)
       self.current_step = step
       self.current_arg = change_set
-      result = step.execute(**change_set)
+      result = step.call(**change_set)
       log_step(step)
       result || change_set
     end

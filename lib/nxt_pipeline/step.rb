@@ -34,7 +34,7 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def execute(**change_set)
+    def call(**change_set)
       track_execution_time do
         set_mapped_options(change_set)
         guard_args = [change_set, self]
