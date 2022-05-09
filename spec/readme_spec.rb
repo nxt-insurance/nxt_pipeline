@@ -41,7 +41,7 @@ RSpec.describe NxtPipeline::Pipeline do
       NxtPipeline::Pipeline.new do |p|
         p.constructor(:service, default: true) do |step, strings:|
           result = step.argument.new(strings).call
-          { strings: result }
+          result && { strings: result }
         end
 
         p.step Compacter

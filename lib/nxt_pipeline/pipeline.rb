@@ -19,7 +19,7 @@ module NxtPipeline
 
     alias_method :configure, :tap
 
-    attr_accessor :logger, :steps
+    attr_accessor :logger
 
     def constructor(name, **opts, &constructor)
       name = name.to_sym
@@ -44,12 +44,24 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
-    # TODO: Multi step syntax
-    # def steps(steps, &block)
-    #   steps.each do |args|
-    #     step(args.first)
-    #   end
-    # end
+    # Overwrite reader to also define steps
+    def steps(steps = [], &block)
+      return @steps unless steps.any?
+
+      steps.each do |args|
+        step(args.first)
+      end
+    end
+
+    # Allow to force steps with setter
+    def steps=(steps = [])
+      # reset steps to be zero
+      @steps = []
+
+      steps.each do |args|
+        step(args.first)
+      end
+    end
 
     def step(argument, constructor: nil, **opts, &block)
 

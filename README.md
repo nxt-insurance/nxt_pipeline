@@ -58,20 +58,32 @@ class Compacter
   end
 end
 
+class Notifier < ApplicationJob
+  def perform_later(**args)
+    # ... TODO
+  end
+end
 
 pipeline = NxtPipeline::Pipeline.new do |p|
+  # service objects 
   p.constructor(:service, default: true) do |step, arg:|
     result = step.argument.new(arg).call
     result && { arg: result }
   end
 
+  # active job jobs
+  p.constructor(:job) do |step, arg:|
+    step.argument.perform_later(**arg).call
+    { arg: arg }
+  end
+
   p.step Compacter
   p.step Stripper
   p.step Upcaser
+  p.step Notifier, constructor: :job
 end
 
 pipeline.call(strings: ['Ruby', '', nil, 'JavaScript'])
-
 ```
 
 ### Defining steps
@@ -79,16 +91,18 @@ pipeline.call(strings: ['Ruby', '', nil, 'JavaScript'])
 Once your pipeline knows how to execute your steps you can add those.
 
 ```ruby
-pipeline.step :service, service_class: MyServiceClass, to_s: 'First step'
-pipeline.step service_class: MyOtherServiceClass, to_s: 'Second step'
-# ^ Since service is the default step you don't have to specify it the step type each time
-pipeline.step :job, job_class: MyJobClass # to_s is optional
-pipeline.step :job, job_class: MyOtherJobClass
+# explicitly define which constructor to use 
+pipeline.step MyServiceClass, constructor: :service
+# Rely on the default constructor
+pipeline.step MyOtherServiceClass
+# Define a step name
+pipeline.step MyOtherServiceClass, to_s: 'First Step'
 
+# Execute a block where the first argument becomes the :to_s
 pipeline.step :step_name_for_better_log do |_, arg:|
   # ...
 end
-
+# Same as:
 pipeline.step to_s: 'This is the same as above' do |step, arg:|
   # ... step.to_s => 'This is the same as above'
 end
@@ -100,18 +114,17 @@ will be set to :inline.
 
 ### Execution
 
-You can then execute the steps with:
+Once a pipeline contains steps you can run it with:
 
 ```ruby
 pipeline.call(arg: 'initial argument')
 
-# Or run the steps directly using block syntax
-
+# Or directly pass the steps you want to execute:
 pipeline.call(arg: 'initial argument') do |p|
-  p.step :service, service_class: MyServiceClass, to_s: 'First step'
-  p.step :service, service_class: MyOtherServiceClass, to_s: 'Second step'
-  p.step :job, job_class: MyJobClass # to_s is optional
-  p.step :job, job_class: MyOtherJobClass
+  p.step MyServiceClass, to_s: 'First step'
+  p.step MyOtherServiceClass, to_s: 'Second step'
+  p.step MyJobClass, constructor: :job
+  p.step MyOtherJobClass, constructor: :job
 end
 
 ```
@@ -127,7 +140,8 @@ end
 ```
 
 You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with
-an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at, execution_duration, result, error and the index in the pipeline.
+an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at, 
+execution_duration, result, error and the index in the pipeline.
 
 ```
 pipeline.steps.first
@@ -154,8 +168,8 @@ When the guard takes an argument the step argument is yielded.
 
  ```ruby
  pipeline.call(arg: 'initial argument') do |p|
-  p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
-  p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
+  p.step MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
+  p.step MyOtherServiceClass, unless: -> { false }
 end
 
  ```
@@ -245,9 +259,7 @@ See the previous section (_Error callbacks_) for how to define callbacks that ru
 
 ### Step resolvers
 
-NxtPipeline is using so called constructor_resolvers to find the constructor for a given step by the arguments passed in.
-You can also use this if you are not fine with resolving the constructor from the step argument. Check out the
-`nxt_pipeline/spec/constructor_resolver_spec.rb` for examples how you can implement your own constructor_resolvers.
+# TODO
 
 
 ## Topics
