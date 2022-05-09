@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline::Pipeline do
+RSpec.describe NxtPipeline::Pipe do
 
   class Service
     def self.call(strings:)
@@ -38,7 +38,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'with constructor' do
     subject do
-      NxtPipeline::Pipeline.new do |p|
+      NxtPipeline::Pipe.new do |p|
         p.constructor(:service, default: true) do |step, strings:|
           result = step.argument.new(strings).call
           result && { strings: result }
@@ -50,10 +50,31 @@ RSpec.describe NxtPipeline::Pipeline do
       end
     end
 
-    let(:input) { ['', nil, 'andy', 'hanna'] }
+    let(:input) { ['', nil, 'andy  ', '   hanna'] }
 
     it do
       expect(subject.call(strings: input)).to eq(strings: ['ANDY', 'HANNA'])
+    end
+  end
+
+  context 'with proc as constructor' do
+    subject do
+      NxtPipeline::Pipe.new do |p|
+        p.constructor(:service, default: true) do |step, strings:|
+          result = step.argument.new(strings).call
+          result && { strings: result }
+        end
+
+        p.step Compacter, constructor: -> (s, strings:) { { strings: s.argument.call(strings: strings * 2) } }
+        p.step Stripper
+        p.step Upcaser
+      end
+    end
+
+    let(:input) { ['', nil, 'andy  ', '   hanna'] }
+
+    it do
+      expect(subject.call(strings: input)).to eq(strings: ["ANDY", "HANNA", "ANDY", "HANNA"])
     end
   end
 end

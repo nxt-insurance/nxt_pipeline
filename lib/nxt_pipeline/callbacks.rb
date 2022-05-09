@@ -10,8 +10,11 @@ module NxtPipeline
     end
 
     def run(kind_of_callback, type, change_set)
-      registry.resolve!(kind_of_callback, type).each do |callback|
-        run_callback(callback, change_set)
+      callbacks = registry.resolve!(kind_of_callback, type)
+      return unless callbacks.any?
+
+      callbacks.inject(change_set) do |changes, callback|
+        run_callback(callback, changes)
       end
     end
 

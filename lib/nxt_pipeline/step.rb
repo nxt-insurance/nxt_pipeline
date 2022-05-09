@@ -87,7 +87,7 @@ module NxtPipeline
     end
 
     def execute_callable(callable, args)
-      args =  args.take(callable.arity)
+      args = args.take(callable.arity) unless callable.arity.negative?
 
       if args.last.is_a?(Hash)
         callable.call(*args.take(args.length - 1), **args.last)

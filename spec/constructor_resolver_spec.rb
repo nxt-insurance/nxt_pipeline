@@ -1,23 +1,37 @@
-RSpec.describe NxtPipeline::Pipeline do
+RSpec.describe NxtPipeline::Pipe do
   describe '#step_resovler' do
+    class Transform
+      def initialize(word, operation)
+        @word = word
+        @operation = operation
+      end
+
+      attr_reader :word, :operation
+
+      def call
+        word.send(operation)
+      end
+    end
+
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.constructor_resolver do |argument|
-          argument.is_a?(Class) && :service
+      NxtPipeline::Pipe.new do |pipeline|
+        # dynamically resolve to use a proc as constructor
+        pipeline.constructor_resolver do |argument, **opts|
+          argument.is_a?(Class) &&
+            ->(step, arg:) {
+              result = step.argument.new(arg, opts.fetch(:operation)).call
+              { arg: result }
+            }
         end
 
-        pipeline.constructor_resolver do |argument|
+        # dynamically resolve to a defined constructor
+        pipeline.constructor_resolver do |argument, **opts|
           argument.is_a?(String) && :dynamic
-        end
-
-        pipeline.constructor(:service, default: true) do |step, arg:|
-          result = step.argument.new(word: arg).call
-          { arg: result }
         end
 
         pipeline.constructor(:dynamic) do |step, arg:|
           if step.argument == 'multiply'
-            { arg: arg * 2 }
+            { arg: arg * step.multiplier }
           elsif step.argument == 'symbolize'
             { arg: arg.to_sym }
           else
@@ -25,11 +39,10 @@ RSpec.describe NxtPipeline::Pipeline do
           end
         end
 
-        pipeline.step StepOne
-        pipeline.step 'multiply'
+        pipeline.step Transform, operation: 'upcase'
+        pipeline.step 'multiply', multiplier: 2
         pipeline.step 'symbolize'
-
-        pipeline.step :inline do |step, arg:|
+        pipeline.step :extract_value do |step, arg:|
           arg
         end
       end

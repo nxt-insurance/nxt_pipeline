@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline::Pipeline do
+RSpec.describe NxtPipeline::Pipe do
   class StepOne
     def initialize(word:)
       @word = word
@@ -28,7 +28,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'when there are no errors' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:service) do |step, word:|
           step.to_s = step.argument.name
           result = step.argument.new(word: word).call
@@ -66,7 +66,7 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'when registering the same step multiple times' do
     it 'raises an error' do
       expect {
-        NxtPipeline::Pipeline.new do |pipeline|
+        NxtPipeline::Pipe.new do |pipeline|
           pipeline.constructor(:service) do |step, word:|
             step.service_class.new(word: word).call
           end
@@ -81,7 +81,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'when there is an error' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:service, default: true) do |step, arg:|
           step.name = step.argument.to_s
           result = step.argument.new(word: arg).call
@@ -153,7 +153,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'error callbacks' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:error_test) do |step, error:|
           step.raisor.call(error)
         end
@@ -182,7 +182,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when the more common handler was registered before the more specific handler' do
       subject do
-        NxtPipeline::Pipeline.new do |pipeline|
+        NxtPipeline::Pipe.new do |pipeline|
           pipeline.constructor(:error_test) do |step, error:|
             step.raisor.call(error)
           end
@@ -212,7 +212,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when one handler was registered for multiple errors' do
       subject do
-        NxtPipeline::Pipeline.new do |pipeline|
+        NxtPipeline::Pipe.new do |pipeline|
           pipeline.constructor(:error_test) do |step, error:|
             step.raisor.call(error)
           end
@@ -238,7 +238,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
     context 'when a handler was configured not to halt the pipeline' do
       subject do
-        NxtPipeline::Pipeline.new do |pipeline|
+        NxtPipeline::Pipe.new do |pipeline|
           pipeline.step :upcase do |_, word:|
             { word: word.upcase }
           end
@@ -270,7 +270,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'with different kinds of steps registered' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:service) do |step, arg:|
           result = step.transformer.call(arg: arg)
           result && { arg: result }
@@ -298,7 +298,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'default step' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:proc, default: true) do |step, arg:|
           { arg: step.transformer.call(arg) }
         end
@@ -315,7 +315,7 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'when defined multiple times' do
       it 'raises an error' do
         expect {
-          NxtPipeline::Pipeline.new do |pipeline|
+          NxtPipeline::Pipe.new do |pipeline|
             pipeline.constructor(:proc, default: true) do |step, arg:|
               { arg: step.transformer.call(arg) }
             end
@@ -331,7 +331,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'steps with blocks' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.step :first_step do |_, arg:|
           { arg: arg.upcase }
         end
@@ -380,7 +380,7 @@ RSpec.describe NxtPipeline::Pipeline do
         { arg: arg * 2 }
       end
 
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.step -> (_, arg:) { { arg: arg.upcase } }
         pipeline.step -> (_, arg:) { { arg: arg.chars.join('_') } }
         pipeline.step method(:times_two)
@@ -408,7 +408,7 @@ RSpec.describe NxtPipeline::Pipeline do
       end
 
       def pipeline
-        NxtPipeline::Pipeline.new do |pipeline|
+        NxtPipeline::Pipe.new do |pipeline|
           pipeline.step :upcase do |_, arg:|
             { arg: transform_upcase(arg) }
           end
@@ -441,7 +441,7 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:adder) do |step, number:|
           { number: step.argument.call(number) }
         end
@@ -476,7 +476,7 @@ RSpec.describe NxtPipeline::Pipeline do
   end
 
   describe '#configure' do
-    subject { NxtPipeline::Pipeline.new }
+    subject { NxtPipeline::Pipe.new }
 
     before do
       subject.configure do |pipeline|
@@ -501,7 +501,7 @@ RSpec.describe NxtPipeline::Pipeline do
 
   describe '.call' do
     subject do
-      NxtPipeline::Pipeline.call(arg: 'hanna') do |pipeline|
+      NxtPipeline::Pipe.call(arg: 'hanna') do |pipeline|
         pipeline.step :test do |_, arg:|
           arg.upcase
         end

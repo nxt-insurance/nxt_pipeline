@@ -25,9 +25,10 @@ Or install it yourself as:
 ### Constructors
 
 In order to reduce over your service objects you have to define constructors so that the pipeline knows how to execute
-each step. Consider the following pipelines that processes an array of strings,
+each step. Consider the following pipeline that processes an array of strings:
 
 ```ruby
+
 class Upcaser
   def initialize(strings)
     @strings = strings
@@ -64,7 +65,7 @@ class Notifier < ApplicationJob
   end
 end
 
-pipeline = NxtPipeline::Pipeline.new do |p|
+pipeline = NxtPipeline::Pipe.new do |p|
   # service objects 
   p.constructor(:service, default: true) do |step, arg:|
     result = step.argument.new(arg).call
@@ -88,29 +89,43 @@ pipeline.call(strings: ['Ruby', '', nil, 'JavaScript'])
 
 ### Defining steps
 
-Once your pipeline knows how to execute your steps you can add those.
+Once your pipeline knows how to execute your steps you can add those. The `pipeline.step` method expects at least one
+argument which you can access in the constructor through `step.argument`. You can also pass in additional options
+that you can access through readers your step. The `constructor:` option defines which constructor to use for a step
+where as you can name a step with th `to_s:` option.
 
 ```ruby
 # explicitly define which constructor to use 
 pipeline.step MyServiceClass, constructor: :service
+# use a block as inline constructor
+pipeline.step SpecialService, constructor: ->(step, arg:) { step.argument.call(arg: arg) }
 # Rely on the default constructor
 pipeline.step MyOtherServiceClass
 # Define a step name
 pipeline.step MyOtherServiceClass, to_s: 'First Step'
-
-# Execute a block where the first argument becomes the :to_s
-pipeline.step :step_name_for_better_log do |_, arg:|
+# Or simply execute a (named) block
+pipeline.step :step_name_for_better_log do |step, arg:|
   # ...
 end
-# Same as:
+# Which is the same as above
 pipeline.step to_s: 'This is the same as above' do |step, arg:|
-  # ... step.to_s => 'This is the same as above'
+  # ... 
 end
-```
 
-You can also define inline steps, meaning the block will be executed. When you do not provide a :to_s option, type
-will be used as :to_s option per default. When no type was given for an inline block the type of the inline block
-will be set to :inline.
+# You can also add multiple steps at once which is especially useful to dynamically configure a pipeline for execution
+pipeline.steps([
+  [MyServiceClass, constructor: :service],
+  [MyOtherServiceClass, constructor: :service],
+  [MyJobClass, constructor: :job]
+])
+
+# You can also overwrite the steps of a pipeline through explicitly setting them. This will remove any previously 
+# defined steps.
+pipeline.steps = [
+  [MyServiceClass, constructor: :service],
+  [MyOtherServiceClass, constructor: :service]
+]
+```
 
 ### Execution
 
@@ -126,13 +141,12 @@ pipeline.call(arg: 'initial argument') do |p|
   p.step MyJobClass, constructor: :job
   p.step MyOtherJobClass, constructor: :job
 end
-
 ```
 
-You can also directly execute a pipeline with:
+You can also create a new instance of a pipeline and directly run it with `call`:
 
 ```ruby
-NxtPipeline::Pipeline.call(arg: 'initial argument') do |p|
+NxtPipeline::Pipe.call(arg: 'initial argument') do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
@@ -140,7 +154,7 @@ end
 ```
 
 You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with
-an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at, 
+an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at,
 execution_duration, result, error and the index in the pipeline.
 
 ```
@@ -179,7 +193,7 @@ end
 Apart from defining constructors and steps you can also define error callbacks.
 
 ```ruby
-NxtPipeline::Pipeline.new do |p|
+NxtPipeline::Pipe.new do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
@@ -211,7 +225,7 @@ multiple callbacks, but probably you want to keep them to a minimum to not end u
 #### Step callbacks
 
 ```ruby
-NxtPipeline::Pipeline.new do |p|
+NxtPipeline::Pipe.new do |p|
   p.before_step do |_, change_set|
     change_set[:acc] << 'before step 1'
     change_set
@@ -234,7 +248,7 @@ end
 #### Execution callbacks
 
 ```ruby
-NxtPipeline::Pipeline.new do |p|
+NxtPipeline::Pipe.new do |p|
   p.before_execution do |_, change_set|
     change_set[:acc] << 'before execution 1'
     change_set
@@ -257,9 +271,60 @@ end
 Note that the `after_execute` callback will not be called in case a step raises an error.
 See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
 
-### Step resolvers
+### Constructor resolvers
 
-# TODO
+You can also define constructor resolvers for a pipeline to dynamically define which previously registered constructor
+to use for a step based on the argument and options passed to the step.
+
+```ruby
+
+class Transform
+  def initialize(word, operation)
+    @word = word
+    @operation = operation
+  end
+
+  attr_reader :word, :operation
+
+  def call
+    word.send(operation)
+  end
+end
+
+NxtPipeline::Pipe.new do |pipeline|
+  # dynamically resolve to use a proc as constructor
+  pipeline.constructor_resolver do |argument, **opts|
+    argument.is_a?(Class) &&
+      ->(step, arg:) {
+        result = step.argument.new(arg, opts.fetch(:operation)).call
+        # OR result = step.argument.new(arg, step.operation).call
+        { arg: result }
+      }
+  end
+
+  # dynamically resolve to a defined constructor
+  pipeline.constructor_resolver do |argument|
+    argument.is_a?(String) && :dynamic
+  end
+
+  pipeline.constructor(:dynamic) do |step, arg:|
+    if step.argument == 'multiply'
+      { arg: arg * step.multiplier }
+    elsif step.argument == 'symbolize'
+      { arg: arg.to_sym }
+    else
+      raise ArgumentError, "Don't know how to deal with argument: #{step.argument}"
+    end
+  end
+
+  pipeline.step Transform, operation: 'upcase'
+  pipeline.step 'multiply', multiplier: 2
+  pipeline.step 'symbolize'
+  pipeline.step :extract_value do |step, arg:|
+    arg
+  end
+end
+```
 
 
 ## Topics

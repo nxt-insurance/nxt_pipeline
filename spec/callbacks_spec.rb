@@ -1,7 +1,7 @@
-RSpec.describe NxtPipeline::Pipeline do
+RSpec.describe NxtPipeline::Pipe do
 
   let(:pipeline) do
-    NxtPipeline::Pipeline.new do |pipeline|
+    NxtPipeline::Pipe.new do |pipeline|
       pipeline.step to_s: '1' do |_, change_set|
         change_set[:acc] << 'step 1'
         change_set

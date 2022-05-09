@@ -1,7 +1,7 @@
-RSpec.describe NxtPipeline::Pipeline do
+RSpec.describe NxtPipeline::Pipe do
   context 'mapped options' do
     subject do
-      NxtPipeline::Pipeline.new do |pipeline|
+      NxtPipeline::Pipe.new do |pipeline|
         pipeline.constructor(:proc, default: true) do |step, opts|
           step.proc.call(opts, step.mapped_options)
         end

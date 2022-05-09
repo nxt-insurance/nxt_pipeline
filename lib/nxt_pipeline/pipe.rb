@@ -1,5 +1,5 @@
 module NxtPipeline
-  class Pipeline
+  class Pipe
     def self.call(**opts, &block)
       new(&block).call(**opts)
     end
@@ -13,6 +13,7 @@ module NxtPipeline
       @default_constructor_name = nil
       @constructors = {}
       @constructor_resolvers = resolvers
+      @result = nil
 
       configure(&block) if block_given?
     end
@@ -20,6 +21,7 @@ module NxtPipeline
     alias_method :configure, :tap
 
     attr_accessor :logger
+    attr_reader :result
 
     def constructor(name, **opts, &constructor)
       name = name.to_sym
@@ -49,7 +51,14 @@ module NxtPipeline
       return @steps unless steps.any?
 
       steps.each do |args|
-        step(args.first)
+        arguments = Array(args)
+        if arguments.size == 1
+          step(arguments.first)
+        elsif arguments.size == 2
+          step(arguments.first, **arguments.second)
+        else
+          raise ArgumentError, "Either pass a single argument or an argument and options"
+        end
       end
     end
 
@@ -57,16 +66,13 @@ module NxtPipeline
     def steps=(steps = [])
       # reset steps to be zero
       @steps = []
-
-      steps.each do |args|
-        step(args.first)
-      end
+      steps(steps)
     end
 
     def step(argument, constructor: nil, **opts, &block)
 
       if constructor.present? and block_given?
-        msg = "Either specify a block or a constructor but not both"
+        msg = "Either specify a block or a constructor but not both at the same time!"
         raise ArgumentError, msg
       end
 
@@ -84,30 +90,48 @@ module NxtPipeline
       opts.reverse_merge!(to_s: to_s)
 
       if constructor.present?
+        # p.step Service, constructor: ->(step, **changes) { ... }
         if constructor.respond_to?(:call)
           resolved_constructor = Constructor.new(:inline, **opts, &constructor)
         else
+          # p.step Service, constructor: :service
           resolved_constructor = constructors.fetch(constructor) { raise ArgumentError, "No constructor defined for #{constructor}" }
         end
       elsif block_given?
+        # p.step :inline do ... end
         resolved_constructor = Constructor.new(:inline, **opts, &block)
       else
+        # If no constructor was given try to resolve one
         resolvers = constructor_resolvers.any? ? constructor_resolvers : default_constructor_resolver
 
-        constructor = resolvers.map do |resolver|
+        constructor_from_resolvers = resolvers.map do |resolver|
           resolver.call(argument, **opts)
         end.find(&:itself)
 
-        # TODO: Make clear that resolver was used
-        resolved_constructor = constructors[constructor]
+        # resolved constructor is a proc
+        if constructor_from_resolvers.is_a?(Proc)
+          resolved_constructor = Constructor.new(:inline, **opts, &constructor_from_resolvers)
+        else
+          # resolved_constructor.present? => we could resolve a constructor
+          resolved_constructor = constructors[constructor_from_resolvers]
+        end
 
+
+        # if still no constructor resolved
         unless resolved_constructor.present?
+          # see if a proc or method was passed and we can execute it
           if argument.is_a?(Proc) || argument.is_a?(Method) # TODO: Spec blocks, procs and lambdas here
             resolved_constructor = Constructor.new(:inline, **opts, &argument)
+          # another pipeline was passed as a step
+          elsif argument.is_a?(NxtPipeline::Pipe)
+            pipeline_constructor = ->(_, **changes) { argument.call(**changes) }
+            resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
+          # last chance: default constructor
           elsif default_constructor.present?
             resolved_constructor = default_constructor
+          # now we really give up :-(
           else
-            raise ArgumentError, "Could not resolve any constructor for #{argument}, #{opts}"
+            raise ArgumentError, "Could neither find nor resolve any constructor for #{argument}, #{opts}"
           end
         end
       end
@@ -121,18 +145,18 @@ module NxtPipeline
       configure(&block) if block_given?
       callbacks.run(:before, :execution, change_set)
 
-      result = callbacks.around :execution, change_set do
-        steps.inject(change_set) do |set, step|
-          call_step(step, **set)
+      self.result = callbacks.around :execution, change_set do
+        steps.inject(change_set) do |changes, step|
+          self.result = call_step(step, **changes)
         rescue StandardError => error
-          decorate_error_with_details(error, set, step, logger)
+          decorate_error_with_details(error, changes, step, logger)
           handle_error_of_step(error)
-          set
+          result
         end
       end
 
-      callbacks.run(:after, :execution, change_set)
-      result
+      # callbacks.run(:after, :execution, result) TODO: Better pass result to callback?
+      self.result = callbacks.run(:after, :execution, change_set) || result
     rescue StandardError => error
       handle_step_error(error)
     end
@@ -177,6 +201,8 @@ module NxtPipeline
     end
 
     private
+
+    attr_writer :result
 
     def callbacks
       @callbacks ||= NxtPipeline::Callbacks.new(pipeline: self)
