@@ -44,6 +44,12 @@ module NxtPipeline
       raise ArgumentError, 'Default step already defined'
     end
 
+    def steps(steps, &block)
+      steps.each do |args|
+        step(args.first)
+      end
+    end
+
     def step(argument, constructor: nil, **opts, &block)
 
       if constructor.present? and block_given?
@@ -83,7 +89,7 @@ module NxtPipeline
         resolved_constructor = constructors[constructor]
 
         unless resolved_constructor.present?
-          if argument.is_a?(Proc)
+          if argument.is_a?(Proc) || argument.is_a?(Method) # TODO: Spec blocks, procs and lambdas here
             resolved_constructor = Constructor.new(:inline, **opts, &argument)
           elsif default_constructor.present?
             resolved_constructor = default_constructor
