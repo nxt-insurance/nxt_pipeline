@@ -2,7 +2,7 @@
 
 # NxtPipeline
 
-The idea of nxt_pipeline is to provide the functionality to reduce over service objects and callables in general. 
+The idea of nxt_pipeline is to provide the functionality to reduce over service objects and callables in general.
 
 ## Installation
 
@@ -25,7 +25,7 @@ Or install it yourself as:
 ### Constructors
 
 In order to reduce over your service objects you have to define constructors so that the pipeline knows how to execute
-each step. Consider the following pipelines that processes an array of strings, 
+each step. Consider the following pipelines that processes an array of strings,
 
 ```ruby
 class Upcaser
@@ -58,41 +58,20 @@ class Compacter
   end
 end
 
-subject do
-  NxtPipeline::Pipeline.new do |p|
-    p.constructor(:service, default: true) do |step, arg:|
-      result = step.argument.new(arg).call
-      result && { arg: result }
-    end
 
-    p.step Compacter
-    p.step Stripper
-    p.step Upcaser
+pipeline = NxtPipeline::Pipeline.new do |p|
+  p.constructor(:service, default: true) do |step, arg:|
+    result = step.argument.new(arg).call
+    result && { arg: result }
   end
+
+  p.step Compacter
+  p.step Stripper
+  p.step Upcaser
 end
 
-# In case your service objects already implement call there is no need to define constructors as long as they 
-# all use the same input arguments
-class Service
-  def self.call(*args)
-    new(*args).call
-  end
-end
+pipeline.call(strings: ['Ruby', '', nil, 'JavaScript'])
 
-# Once a pipeline was created you can still configure it
-pipeline.constructor(:call) do |step, arg:|
-  result = step.caller.new(arg).call
-  result && { arg: result }
-end
-
-# same with block syntax
-# You can use this to split up execution from configuration
-pipeline.configure do |p|
- p.constructor(:call) do |step, arg:|
-   result = step.caller.new(arg).call
-   result && { arg: result }
- end
-end
 ```
 
 ### Defining steps
@@ -175,9 +154,9 @@ When the guard takes an argument the step argument is yielded.
 
  ```ruby
  pipeline.call(arg: 'initial argument') do |p|
-   p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
-   p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
- end
+  p.step :service, service_class: MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
+  p.step :service, service_class: MyOtherServiceClass, unless: -> { false }
+end
 
  ```
 
@@ -261,7 +240,7 @@ NxtPipeline::Pipeline.new do |p|
 end
 ```
 
-Note that the `after_execute` callback will not be called in case a step raises an error. 
+Note that the `after_execute` callback will not be called in case a step raises an error.
 See the previous section (_Error callbacks_) for how to define callbacks that run in case of errors.
 
 ### Step resolvers
