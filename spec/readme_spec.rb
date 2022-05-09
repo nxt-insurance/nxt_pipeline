@@ -1,8 +1,8 @@
 RSpec.describe NxtPipeline::Pipeline do
 
   class Service
-    def self.call(*args)
-      new(*args).call
+    def self.call(strings:)
+      new(strings).call
     end
   end
 
@@ -56,21 +56,4 @@ RSpec.describe NxtPipeline::Pipeline do
       expect(subject.call(arg: input)).to eq(arg: ['ANDY', 'HANNA'])
     end
   end
-
-  context 'without constructor' do
-    subject do
-      NxtPipeline::Pipeline.new do |p|
-        p.step Compacter
-        p.step Stripper
-        p.step Upcaser
-      end
-    end
-
-    let(:input) { ['', nil, 'andy', 'hanna'] }
-
-    it do
-      expect(subject.call(arg: input)).to eq(arg: ['ANDY', 'HANNA'])
-    end
-  end
-
 end

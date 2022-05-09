@@ -52,14 +52,14 @@ module NxtPipeline
       end
 
       to_s = if opts[:to_s].present?
-        opts[:to_s] = opts[:to_s].to_s
-      else
-        if argument.is_a?(Proc) || argument.is_a?(Method)
-          steps.count.to_s
-        else
-          argument.to_s
-        end
-      end
+               opts[:to_s] = opts[:to_s].to_s
+             else
+               if argument.is_a?(Proc) || argument.is_a?(Method)
+                 steps.count.to_s
+               else
+                 argument.to_s
+               end
+             end
 
 
       opts.reverse_merge!(to_s: to_s)
@@ -83,12 +83,8 @@ module NxtPipeline
         resolved_constructor = constructors[constructor]
 
         unless resolved_constructor.present?
-          if argument.respond_to?(:call)
-            if argument.is_a?(Proc)
-              resolved_constructor = Constructor.new(:inline, **opts, &argument)
-            else
-              # TODO: Constructor for classes that respond to call
-            end
+          if argument.is_a?(Proc)
+            resolved_constructor = Constructor.new(:inline, **opts, &argument)
           elsif default_constructor.present?
             resolved_constructor = default_constructor
           else
