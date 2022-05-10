@@ -1,3 +1,10 @@
+## nxt_pipeline 2.0.0 (10.05.2022)
+
+- Rename `Pipeline.execute` to `Pipeline.call`
+- Introduce constructor resolvers
+- Expose :new and :call directly on NxtPipeline instead of only through NxtPipeline::Pipeline class
+- Introduce constructor option to specify the constructor to use for a step
+
 ## nxt_pipeline 1.0.0 (24.11.2020)
 
 Replace after and before execute hooks with proper callbacks.
