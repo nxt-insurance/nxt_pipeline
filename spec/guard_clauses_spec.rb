@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline::Pipe do
+RSpec.describe NxtPipeline::Pipeline do
   class StepOne
     def initialize(word:)
       @word = word
@@ -14,7 +14,7 @@ RSpec.describe NxtPipeline::Pipe do
   end
 
   subject do
-    NxtPipeline::Pipe.new do |pipeline|
+    NxtPipeline.new do |pipeline|
       pipeline.constructor(:service, default: true) do |step, **opts|
         step.argument.new(**opts).call
       end

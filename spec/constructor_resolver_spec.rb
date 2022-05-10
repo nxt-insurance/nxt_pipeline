@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline::Pipe do
+RSpec.describe NxtPipeline::Pipeline do
   describe '#step_resovler' do
     class Transform
       def initialize(word, operation)
@@ -14,7 +14,7 @@ RSpec.describe NxtPipeline::Pipe do
     end
 
     subject do
-      NxtPipeline::Pipe.new do |pipeline|
+      NxtPipeline.new do |pipeline|
         # dynamically resolve to use a proc as constructor
         pipeline.constructor_resolver do |argument, **opts|
           argument.is_a?(Class) &&

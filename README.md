@@ -28,7 +28,6 @@ In order to reduce over your service objects you have to define constructors so 
 each step. Consider the following pipeline that processes an array of strings:
 
 ```ruby
-
 class Upcaser
   def initialize(strings)
     @strings = strings
@@ -65,7 +64,7 @@ class Notifier < ApplicationJob
   end
 end
 
-pipeline = NxtPipeline::Pipe.new do |p|
+pipeline = NxtPipeline.new do |p|
   # service objects 
   p.constructor(:service, default: true) do |step, arg:|
     result = step.argument.new(arg).call
@@ -146,7 +145,7 @@ end
 You can also create a new instance of a pipeline and directly run it with `call`:
 
 ```ruby
-NxtPipeline::Pipe.call(arg: 'initial argument') do |p|
+NxtPipeline.call(arg: 'initial argument') do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
@@ -193,7 +192,7 @@ end
 Apart from defining constructors and steps you can also define error callbacks.
 
 ```ruby
-NxtPipeline::Pipe.new do |p|
+NxtPipeline.new do |p|
   p.step do |_, arg:|
     { arg: arg.upcase }
   end
@@ -225,7 +224,7 @@ multiple callbacks, but probably you want to keep them to a minimum to not end u
 #### Step callbacks
 
 ```ruby
-NxtPipeline::Pipe.new do |p|
+NxtPipeline.new do |p|
   p.before_step do |_, change_set|
     change_set[:acc] << 'before step 1'
     change_set
@@ -248,7 +247,7 @@ end
 #### Execution callbacks
 
 ```ruby
-NxtPipeline::Pipe.new do |p|
+NxtPipeline.new do |p|
   p.before_execution do |_, change_set|
     change_set[:acc] << 'before execution 1'
     change_set
@@ -277,7 +276,6 @@ You can also define constructor resolvers for a pipeline to dynamically define w
 to use for a step based on the argument and options passed to the step.
 
 ```ruby
-
 class Transform
   def initialize(word, operation)
     @word = word
@@ -291,7 +289,7 @@ class Transform
   end
 end
 
-NxtPipeline::Pipe.new do |pipeline|
+NxtPipeline.new do |pipeline|
   # dynamically resolve to use a proc as constructor
   pipeline.constructor_resolver do |argument, **opts|
     argument.is_a?(Class) &&

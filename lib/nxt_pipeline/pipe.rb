@@ -1,5 +1,5 @@
 module NxtPipeline
-  class Pipe
+  class Pipeline
     def self.call(**opts, &block)
       new(&block).call(**opts)
     end
@@ -123,7 +123,7 @@ module NxtPipeline
           if argument.is_a?(Proc) || argument.is_a?(Method) # TODO: Spec blocks, procs and lambdas here
             resolved_constructor = Constructor.new(:inline, **opts, &argument)
           # another pipeline was passed as a step
-          elsif argument.is_a?(NxtPipeline::Pipe)
+          elsif argument.is_a?(NxtPipeline::Pipeline)
             pipeline_constructor = ->(_, **changes) { argument.call(**changes) }
             resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
           # last chance: default constructor

@@ -1,4 +1,4 @@
-RSpec.describe NxtPipeline::Pipe do
+RSpec.describe NxtPipeline::Pipeline do
 
   class Service
     def self.call(strings:)
@@ -38,7 +38,7 @@ RSpec.describe NxtPipeline::Pipe do
 
   context 'with constructor' do
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:service, default: true) do |step, strings:|
           result = step.argument.new(strings).call
           result && { strings: result }
@@ -59,7 +59,7 @@ RSpec.describe NxtPipeline::Pipe do
 
   context 'with proc as constructor' do
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:service, default: true) do |step, strings:|
           result = step.argument.new(strings).call
           result && { strings: result }

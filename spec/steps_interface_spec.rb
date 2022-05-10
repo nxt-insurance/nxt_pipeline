@@ -1,9 +1,9 @@
-RSpec.describe NxtPipeline::Pipe do
+RSpec.describe NxtPipeline::Pipeline do
   let(:input) { '' }
 
   context 'add steps subsequently' do
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.step ->(_, arg:) { { arg: arg + 'first ' } }
         p.step ->(_, arg:) { { arg: arg + 'second ' } }
         p.step ->(_, arg:) { { arg: arg + 'third ' } }
@@ -36,7 +36,7 @@ RSpec.describe NxtPipeline::Pipe do
     end
 
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:proc, default: true) do |step, arg:|
           if step.mapped_options.any?
             arg << "#{step.mapped_options[:passed_in]} "
@@ -76,7 +76,7 @@ RSpec.describe NxtPipeline::Pipe do
     end
 
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:proc, default: true) do |step, arg:|
           if step.mapped_options.any?
             arg << "#{step.mapped_options[:passed_in]} "
@@ -104,7 +104,7 @@ RSpec.describe NxtPipeline::Pipe do
 
   context 'with a pipeline as a step of another pipeline' do
     let(:other_pipeline) do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:proc, default: true) do |step, arg:|
           if step.mapped_options.any?
             arg << "#{step.mapped_options[:passed_in]} "
@@ -119,7 +119,7 @@ RSpec.describe NxtPipeline::Pipe do
     end
 
     subject do
-      NxtPipeline::Pipe.new do |p|
+      NxtPipeline::Pipeline.new do |p|
         p.constructor(:proc, default: true) do |step, arg:|
           if step.mapped_options.any?
             arg << "#{step.mapped_options[:passed_in]} "

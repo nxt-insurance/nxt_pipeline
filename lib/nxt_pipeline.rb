@@ -9,4 +9,7 @@ require 'nxt_pipeline/callbacks'
 require 'nxt_pipeline/error_callback'
 
 module NxtPipeline
+  class << self
+    delegate_missing_to Pipeline
+  end
 end
