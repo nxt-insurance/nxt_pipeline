@@ -4,6 +4,7 @@
 - Introduce constructor resolvers
 - Expose :new and :call directly on NxtPipeline instead of only through NxtPipeline::Pipeline class
 - Change step DSL: Introduce constructor option to specify the constructor to use for a step
+- Introduce Configurations
 
 ## nxt_pipeline 1.0.0 (24.11.2020)
 

@@ -1,10 +1,10 @@
 module NxtPipeline
   class Pipeline
-    def self.call(**opts, &block)
-      new(&block).call(**opts)
+    def self.call(configuration = nil, resolvers: [], **opts, &block)
+      new(configuration, resolvers: resolvers, &block).call(**opts)
     end
 
-    def initialize(resolvers = [], &block)
+    def initialize(configuration = nil, resolvers: [], &block)
       @steps = []
       @error_callbacks = []
       @logger = Logger.new
@@ -14,6 +14,11 @@ module NxtPipeline
       @constructors = {}
       @constructor_resolvers = resolvers
       @result = nil
+
+      if configuration.present?
+        config = ::NxtPipeline.configuration(configuration)
+        configure(&config)
+      end
 
       configure(&block) if block_given?
     end

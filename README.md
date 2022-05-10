@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/nxt-insurance/nxt_pipeline.svg?style=svg)](https://circleci.com/gh/nxt-insurance/nxt_pipeline)
+<[![CircleCI](https://circleci.com/gh/nxt-insurance/nxt_pipeline.svg?style=svg)](https://circleci.com/gh/nxt-insurance/nxt_pipeline)
 
 # NxtPipeline
 
@@ -324,6 +324,36 @@ NxtPipeline.new do |pipeline|
 end
 ```
 
+### Configurations
+
+You probably do not have that many different kind of steps that you execute within a pipeline. Otherwise the whole
+concept does not make much sense. To make constructing a pipeline simpler you can therefore define configurations on
+a global level simply by providing a name for a configuration along with a configuration block. 
+Then you then create a preconfigure pipeline by passing in the name of the configuration when creating a new pipeline.
+
+```ruby
+# Define configurations nn your initializer or somewhere upfront 
+NxtPipeline.configure(:test_processor) do |pipeline|
+  pipeline.constructor(:processor) do |step, arg:|
+    { arg: step.argument.call(step, arg: arg) }
+  end
+end
+
+NxtPipeline.configure(:validator) do |pipeline|
+  pipeline.constructor(:validator) do |step, arg:|
+    # ..
+  end
+end
+
+# ...
+
+# Later create a pipeline with a previously defined configuration
+NxtPipeline.new(:test_processor) do |p|
+  p.step ->(_, arg:) { arg + 'first ' }, constructor: :processor
+  p.step ->(_, arg:) { arg + 'second ' }, constructor: :processor
+  p.step ->(_, arg:) { arg + 'third' }, constructor: :processor
+end
+```
 
 ## Topics
 - Constructors should take arg as first and step as second arg
@@ -343,3 +373,4 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/nxt-in
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+>
