@@ -1,5 +1,5 @@
 RSpec.describe NxtPipeline do
-  NxtPipeline.configure(:test_processor) do |pipeline|
+  NxtPipeline.configuration(:test_processor) do |pipeline|
     pipeline.constructor(:processor) do |step, arg:|
       { arg: step.argument.call(step, arg: arg) }
     end

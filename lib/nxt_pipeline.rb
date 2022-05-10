@@ -13,16 +13,16 @@ module NxtPipeline
     delegate :new, :call, to: Pipeline
   end
 
-  def configure(name, &block)
+  def configuration(name, &block)
     @configurations ||= {}
-    raise ArgumentError, "Configuration already defined for #{name}" if @configurations[name].present?
 
-    @configurations[name] = block
+    if block_given?
+      raise ArgumentError, "Configuration already defined for #{name}" if @configurations[name].present?
+      @configurations[name] = block
+    else
+      @configurations.fetch(name)
+    end
   end
 
-  def configuration(name)
-    @configurations.fetch(name)
-  end
-
-  module_function :configure, :configuration
+  module_function :configuration
 end

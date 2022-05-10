@@ -333,7 +333,7 @@ Then you then create a preconfigure pipeline by passing in the name of the confi
 
 ```ruby
 # Define configurations nn your initializer or somewhere upfront 
-NxtPipeline.configure(:test_processor) do |pipeline|
+NxtPipeline.configuration(:test_processor) do |pipeline|
   pipeline.constructor(:processor) do |step, arg:|
     { arg: step.argument.call(step, arg: arg) }
   end
