@@ -1,38 +1,55 @@
 RSpec.describe NxtPipeline::Pipeline do
+  class Validator
+    def self.call(*args)
+      new(*args).call
+    end
 
-  class Service
-    def self.call(strings:)
-      new(strings).call
+    attr_accessor :error
+
+    def error
+      @error = nil
     end
   end
 
-  class Upcaser < Service
-    def initialize(strings)
-      @strings = strings
+  class TypeChecker < Validator
+    def initialize(value, type)
+      @value = value
+      @type = type
     end
 
+    attr_reader :value, :type
+
     def call
-      @strings.map(&:upcase)
+      return if value.is_a?(type)
+      self.error = "Value does not match type #{type}"
     end
   end
 
-  class Stripper < Service
-    def initialize(strings)
-      @strings = strings
+  class Size < Validator
+    def initialize(value, size)
+      @value = value
+      @size = size
     end
 
+    attr_reader :value, :size
+
     def call
-      @strings.map(&:strip)
+      return if value.size > 0
+      self.error = "Value size must be greater #{size}"
     end
   end
 
-  class Compacter < Service
-    def initialize(strings)
-      @strings = strings
+  class Pattern < Validator
+    def initialize(value, pattern)
+      @value = value
+      @pattern = pattern
     end
 
+    attr_reader :value, :pattern
+
     def call
-      @strings.reject(&:blank?)
+      return if value.size > 0
+      self.error = "Value size cannot be zero"
     end
   end
 
