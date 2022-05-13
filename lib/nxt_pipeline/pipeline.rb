@@ -97,7 +97,7 @@ module NxtPipeline
       if constructor.present?
         # p.step Service, constructor: ->(step, **changes) { ... }
         if constructor.respond_to?(:call)
-          resolved_constructor = Constructor.new(:inline, **opts, &constructor)
+          resolved_constructor = Constructor.new(:block, **opts, &constructor)
         else
           # p.step Service, constructor: :service
           resolved_constructor = constructors.fetch(constructor) {
@@ -106,10 +106,10 @@ module NxtPipeline
         end
       elsif block_given?
         # p.step :inline do ... end
-        resolved_constructor = Constructor.new(:inline, **opts, &block)
+        resolved_constructor = Constructor.new(:block, **opts, &block)
       else
         # If no constructor was given try to resolve one
-        resolvers = constructor_resolvers.any? ? constructor_resolvers : default_constructor_resolver
+        resolvers = constructor_resolvers.any? ? constructor_resolvers : []
 
         constructor_from_resolvers = resolvers.map do |resolver|
           resolver.call(argument, **opts)
@@ -117,20 +117,19 @@ module NxtPipeline
 
         # resolved constructor is a proc
         if constructor_from_resolvers.is_a?(Proc)
-          resolved_constructor = Constructor.new(:inline, **opts, &constructor_from_resolvers)
-        else
-          # resolved_constructor.present? => we could resolve a constructor
+          resolved_constructor = Constructor.new(:proc, **opts, &constructor_from_resolvers)
+        elsif constructor_from_resolvers.present?
           resolved_constructor = constructors[constructor_from_resolvers]
+        else
+          # try to resolve constructor by argument --> #TODO: Is this a good idea?
+          resolved_constructor = constructors[argument]
         end
 
 
         # if still no constructor resolved
         unless resolved_constructor.present?
           # see if a proc or method was passed and we can execute it
-          if argument.is_a?(Proc) || argument.is_a?(Method) # TODO: Spec blocks, procs and lambdas here
-            resolved_constructor = Constructor.new(:inline, **opts, &argument) # TODO: This is bullshit! --> Should not be a constructor!
-          # another pipeline was passed as a step
-          elsif argument.is_a?(NxtPipeline::Pipeline)
+          if argument.is_a?(NxtPipeline::Pipeline)
             pipeline_constructor = ->(_, **changes) { argument.call(**changes) }
             resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
           # last chance: default constructor

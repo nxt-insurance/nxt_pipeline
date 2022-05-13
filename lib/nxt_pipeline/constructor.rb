@@ -1,7 +1,7 @@
 module NxtPipeline
   class Constructor
-    def initialize(name, **opts, &block)
-      @name = name
+    def initialize(type, **opts, &block)
+      @type = type
       @block = block
       @opts = opts
     end
@@ -10,11 +10,11 @@ module NxtPipeline
     
     delegate :arity, to: :block
     
-    def call(*args, **opts, &block)
+    def call(step, **opts, &block)
       # ActiveSupport's #delegate does not properly handle keyword arg passing
       # in the latest released version. Thefore we bypass delegation by reimplementing
       # the method ourselves. This is already fixed in Rails master though.
-      self.block.call(*args, **opts, &block)
+      self.block.call(step, **opts, &block)
     end
   end
 end

@@ -376,13 +376,17 @@ RSpec.describe NxtPipeline::Pipeline do
 
   context 'when the argument responds to call' do
     subject do
-      def times_two(_, arg:)
+      def times_two(arg:)
         { arg: arg * 2 }
       end
 
       NxtPipeline::Pipeline.new do |pipeline|
-        pipeline.step -> (_, arg:) { { arg: arg.upcase } }
-        pipeline.step -> (_, arg:) { { arg: arg.chars.join('_') } }
+        pipeline.constructor(:test, default: true) do |step, arg:|
+          step.argument.call(arg: arg)
+        end
+
+        pipeline.step -> (arg:) { { arg: arg.upcase } }
+        pipeline.step -> (arg:) { { arg: arg.chars.join('_') } }
         pipeline.step method(:times_two)
       end
     end
