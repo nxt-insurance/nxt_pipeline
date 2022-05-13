@@ -100,7 +100,9 @@ module NxtPipeline
           resolved_constructor = Constructor.new(:inline, **opts, &constructor)
         else
           # p.step Service, constructor: :service
-          resolved_constructor = constructors.fetch(constructor) { raise ArgumentError, "No constructor defined for #{constructor}" }
+          resolved_constructor = constructors.fetch(constructor) {
+            ::NxtPipeline.constructor(constructor) || (raise ArgumentError, "No constructor defined for #{constructor}")
+          }
         end
       elsif block_given?
         # p.step :inline do ... end
@@ -126,7 +128,7 @@ module NxtPipeline
         unless resolved_constructor.present?
           # see if a proc or method was passed and we can execute it
           if argument.is_a?(Proc) || argument.is_a?(Method) # TODO: Spec blocks, procs and lambdas here
-            resolved_constructor = Constructor.new(:inline, **opts, &argument)
+            resolved_constructor = Constructor.new(:inline, **opts, &argument) # TODO: This is bullshit! --> Should not be a constructor!
           # another pipeline was passed as a step
           elsif argument.is_a?(NxtPipeline::Pipeline)
             pipeline_constructor = ->(_, **changes) { argument.call(**changes) }

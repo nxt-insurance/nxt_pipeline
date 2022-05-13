@@ -12,4 +12,9 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  config.around(:each) do |example|
+    NxtPipeline.instance_variable_set('@constructors', nil)
+    example.run
+  end
 end

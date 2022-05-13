@@ -24,5 +24,16 @@ module NxtPipeline
     end
   end
 
-  module_function :configuration
+  def constructor(name, &block)
+    @constructors ||= {}
+
+    if block_given?
+      raise ArgumentError, "Constructor already defined for #{name}" if @constructors[name].present?
+      @constructors[name] = block
+    else
+      @constructors.fetch(name)
+    end
+  end
+
+  module_function :configuration, :constructor
 end
