@@ -2,17 +2,17 @@ RSpec.describe NxtPipeline::Pipeline do
 
   let(:pipeline) do
     NxtPipeline.new do |pipeline|
-      pipeline.step to_s: '1' do |_, change_set|
+      pipeline.step to_s: '1' do |change_set|
         change_set[:acc] << 'step 1'
         change_set
       end
 
-      pipeline.step to_s: '2' do |_, change_set|
+      pipeline.step to_s: '2' do |change_set|
         change_set[:acc] << 'step 2'
         change_set
       end
 
-      pipeline.step to_s: '3' do |_, change_set|
+      pipeline.step to_s: '3' do |change_set|
         change_set[:acc] << 'step 3'
         change_set
       end
@@ -27,17 +27,17 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'before execution' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.before_execution do |_, change_set|
+          pipeline.before_execution do |change_set|
             change_set[:acc] << 'before execution 1'
             change_set
           end
 
-          pipeline.before_execution do |_, change_set|
+          pipeline.before_execution do |change_set|
             change_set[:acc] << 'before execution 2'
             change_set
           end
 
-          pipeline.before_execution do |_, change_set|
+          pipeline.before_execution do |change_set|
             change_set[:acc] << 'before execution 3'
             change_set
           end
@@ -59,21 +59,21 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'around execution' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.around_execution do |_, change_set, execution|
+          pipeline.around_execution do |change_set, execution|
             change_set[:acc] << 'around execution 1'
             execution.call
             change_set[:acc] << 'around execution 1'
             change_set
           end
 
-          pipeline.around_execution do |_, change_set, execution|
+          pipeline.around_execution do |change_set, execution|
             change_set[:acc] << 'around execution 2'
             execution.call
             change_set[:acc] << 'around execution 2'
             change_set
           end
 
-          pipeline.around_execution do |_, change_set, execution|
+          pipeline.around_execution do |change_set, execution|
             change_set[:acc] << 'around execution 3'
             execution.call
             change_set[:acc] << 'around execution 3'
@@ -100,17 +100,17 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'after execution' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.after_execution do |_, change_set|
+          pipeline.after_execution do |change_set|
             change_set[:acc] << 'after execution 1'
             change_set
           end
 
-          pipeline.after_execution do |_, change_set|
+          pipeline.after_execution do |change_set|
             change_set[:acc] << 'after execution 2'
             change_set
           end
 
-          pipeline.after_execution do |_, change_set|
+          pipeline.after_execution do |change_set|
             change_set[:acc] << 'after execution 3'
             change_set
           end
@@ -136,17 +136,17 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'before step' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.before_step do |_, change_set|
+          pipeline.before_step do |change_set|
             change_set[:acc] << 'before step 1'
             change_set
           end
 
-          pipeline.before_step do |_, change_set|
+          pipeline.before_step do |change_set|
             change_set[:acc] << 'before step 2'
             change_set
           end
 
-          pipeline.before_step do |_, change_set|
+          pipeline.before_step do |change_set|
             change_set[:acc] << 'before step 3'
             change_set
           end
@@ -174,21 +174,21 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'around step' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.around_step do |_, change_set, execution|
+          pipeline.around_step do |change_set, execution|
             change_set[:acc] << 'around step 1'
             execution.call
             change_set[:acc] << 'around step 1'
             change_set
           end
 
-          pipeline.around_step do |_, change_set, execution|
+          pipeline.around_step do |change_set, execution|
             change_set[:acc] << 'around step 2'
             execution.call
             change_set[:acc] << 'around step 2'
             change_set
           end
 
-          pipeline.around_step do |_, change_set, execution|
+          pipeline.around_step do |change_set, execution|
             change_set[:acc] << 'around step 3'
             execution.call
             change_set[:acc] << 'around step 3'
@@ -227,17 +227,17 @@ RSpec.describe NxtPipeline::Pipeline do
     context 'after step' do
       before do
         pipeline.configure do |pipeline|
-          pipeline.after_step do |_, change_set|
+          pipeline.after_step do |change_set|
             change_set[:acc] << 'after step 1'
             change_set
           end
 
-          pipeline.after_step do |_, change_set|
+          pipeline.after_step do |change_set|
             change_set[:acc] << 'after step 2'
             change_set
           end
 
-          pipeline.after_step do |_, change_set|
+          pipeline.after_step do |change_set|
             change_set[:acc] << 'after step 3'
             change_set
           end
@@ -266,70 +266,70 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'order' do
     before do
       pipeline.configure do |pipeline|
-        pipeline.before_execution do |_, change_set|
+        pipeline.before_execution do |change_set|
           change_set[:acc] << 'before execution 1'
           change_set
         end
 
-        pipeline.before_execution do |_, change_set|
+        pipeline.before_execution do |change_set|
           change_set[:acc] << 'before execution 2'
           change_set
         end
 
-        pipeline.before_step do |_, change_set|
+        pipeline.before_step do |change_set|
           change_set[:acc] << 'before step 1'
           change_set
         end
 
-        pipeline.before_step do |_, change_set|
+        pipeline.before_step do |change_set|
           change_set[:acc] << 'before step 2'
           change_set
         end
 
-        pipeline.around_execution do |_, change_set, execution|
+        pipeline.around_execution do |change_set, execution|
           change_set[:acc] << 'around execution 1'
           execution.call
           change_set[:acc] << 'around execution 1'
           change_set
         end
 
-        pipeline.around_execution do |_, change_set, execution|
+        pipeline.around_execution do |change_set, execution|
           change_set[:acc] << 'around execution 2'
           execution.call
           change_set[:acc] << 'around execution 2'
           change_set
         end
 
-        pipeline.around_step do |_, change_set, execution|
+        pipeline.around_step do |change_set, execution|
           change_set[:acc] << 'around step 1'
           execution.call
           change_set[:acc] << 'around step 1'
           change_set
         end
 
-        pipeline.around_step do |_, change_set, execution|
+        pipeline.around_step do |change_set, execution|
           change_set[:acc] << 'around step 2'
           execution.call
           change_set[:acc] << 'around step 2'
           change_set
         end
 
-        pipeline.after_step do |_, change_set|
+        pipeline.after_step do |change_set|
           change_set[:acc] << 'after step 1'
           change_set
         end
 
-        pipeline.after_step do |_, change_set|
+        pipeline.after_step do |change_set|
           change_set[:acc] << 'after step 2'
           change_set
         end
 
-        pipeline.after_execution do |_, change_set|
+        pipeline.after_execution do |change_set|
           change_set[:acc] << 'after execution 1'
           change_set
         end
 
-        pipeline.after_execution do |_, change_set|
+        pipeline.after_execution do |change_set|
           change_set[:acc] << 'after execution 2'
           change_set
         end

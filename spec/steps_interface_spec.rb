@@ -4,31 +4,35 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'add steps subsequently' do
     subject do
       NxtPipeline::Pipeline.new do |p|
-        p.step ->(_, arg:) { { arg: arg + 'first ' } }
-        p.step ->(_, arg:) { { arg: arg + 'second ' } }
-        p.step ->(_, arg:) { { arg: arg + 'third ' } }
+        p.constructor(:proc, default: true) do |acc, step|
+          step.argument.call(acc)
+        end
 
-        p.after_execution do |pipe, **_|
-          { arg: pipe.result[:arg].strip }
+        p.step ->(arg) { arg + 'first ' }
+        p.step ->(arg) { arg + 'second ' }
+        p.step ->(arg) { arg + 'third ' }
+
+        p.after_execution do |acc, pipe|
+          { arg: pipe.result.strip }
         end
       end
     end
 
     it do
-      expect(subject.call(arg: input)).to eq(arg: 'first second third')
+      expect(subject.call(input)).to eq(arg: 'first second third')
     end
   end
 
   context 'add multiple steps with options through overwritten reader' do
     let(:additional_steps) do
       [
-        ->(_, arg:) { { arg: arg + 'first ' } },
+        ->(acc) { acc + 'first ' },
         [
-          ->(arg) { { arg: arg + 'second ' } },
+          ->(acc) { acc + 'second ' },
           constructor: :proc
         ],
         [
-          ->(arg) { { arg: arg + 'third ' } },
+          ->(acc) { acc + 'third ' },
           constructor: :proc,
           map_options: ->(_) { { passed_in: 'injected' } }
         ]
@@ -37,38 +41,38 @@ RSpec.describe NxtPipeline::Pipeline do
 
     subject do
       NxtPipeline::Pipeline.new do |p|
-        p.constructor(:proc, default: true) do |step, arg:|
+        p.constructor(:proc, default: true) do |acc, step|
           if step.mapped_options.any?
-            arg << "#{step.mapped_options[:passed_in]} "
+            acc << "#{step.mapped_options[:passed_in]} "
           end
 
-          step.argument.call(arg)
+          step.argument.call(acc)
         end
 
         p.steps(additional_steps)
-        p.step ->(_, arg:) { { arg: arg + 'fourth ' } }
+        p.step ->(acc) { acc + 'fourth ' }
 
-        p.after_execution do |pipe, **_|
-          { arg: pipe.result[:arg].strip }
+        p.after_execution do |_, pipeline|
+          { arg: pipeline.result.strip }
         end
       end
     end
 
     it do
-      expect(subject.call(arg: input)).to eq(arg: 'first second injected third fourth')
+      expect(subject.call(input)).to eq(arg: 'first second injected third fourth')
     end
   end
 
   context 'force multiple steps through writer' do
     let(:enforced_steps) do
       [
-        [->(_, arg:) { { arg: arg + 'first ' } }],
+        [->(arg) { arg + 'first ' } ],
         [
-          ->(arg) { { arg: arg + 'second ' } },
+          ->(arg) { arg + 'second ' },
           constructor: :proc
         ],
         [
-          ->(arg) { { arg: arg + 'third ' } },
+          ->(arg) { arg + 'third ' },
           constructor: :proc,
           map_options: -> { { passed_in: 'injected' } }
         ]
@@ -77,19 +81,19 @@ RSpec.describe NxtPipeline::Pipeline do
 
     subject do
       NxtPipeline::Pipeline.new do |p|
-        p.constructor(:proc, default: true) do |step, arg:|
+        p.constructor(:proc, default: true) do |acc, step|
           if step.mapped_options.any?
-            arg << "#{step.mapped_options[:passed_in]} "
+            acc << "#{step.mapped_options[:passed_in]} "
           end
 
-          step.argument.call(arg)
+          step.argument.call(acc)
         end
 
         p.steps(enforced_steps)
-        p.step ->(_, arg:) { { arg: arg + 'fourth ' } }
+        p.step ->(acc) { acc + 'fourth ' }
 
-        p.after_execution do |pipe, **_|
-          { arg: pipe.result[:arg].strip }
+        p.after_execution do |_, pipe|
+          { arg: pipe.result.strip }
         end
       end
     end
@@ -98,44 +102,44 @@ RSpec.describe NxtPipeline::Pipeline do
     before { subject.steps = enforced_steps }
 
     it do
-      expect(subject.call(arg: input)).to eq(arg: 'first second injected third')
+      expect(subject.call(input)).to eq(arg: 'first second injected third')
     end
   end
 
   context 'with a pipeline as a step of another pipeline' do
     let(:other_pipeline) do
       NxtPipeline::Pipeline.new do |p|
-        p.constructor(:proc, default: true) do |step, arg:|
+        p.constructor(:proc, default: true) do |acc, step|
           if step.mapped_options.any?
-            arg << "#{step.mapped_options[:passed_in]} "
+            acc << "#{step.mapped_options[:passed_in]} "
           end
 
-          step.argument.call(arg)
+          step.argument.call(acc)
         end
 
-        p.step ->(_, arg:) { { arg: arg + 'pipeline 1.1 ' } }
-        p.step ->(_, arg:) { { arg: arg + 'pipeline 1.2 ' } }
+        p.step ->(arg) { arg + 'pipeline 1.1 ' }
+        p.step ->(arg) { arg + 'pipeline 1.2 ' }
       end
     end
 
     subject do
       NxtPipeline::Pipeline.new do |p|
-        p.constructor(:proc, default: true) do |step, arg:|
+        p.constructor(:proc, default: true) do |acc, step|
           if step.mapped_options.any?
-            arg << "#{step.mapped_options[:passed_in]} "
+            acc << "#{step.mapped_options[:passed_in]} "
           end
 
-          step.argument.call(arg)
+          step.argument.call(acc)
         end
 
         p.step other_pipeline
-        p.step ->(_, arg:) { { arg: arg + 'pipeline 2.1 ' } }
-        p.step ->(_, arg:) { { arg: arg + 'pipeline 2.2' } }
+        p.step ->(arg) { arg + 'pipeline 2.1 ' }
+        p.step ->(arg) { arg + 'pipeline 2.2' }
       end
     end
 
     it do
-      expect(subject.call(arg: input)).to eq(arg: 'pipeline 1.1 pipeline 1.2 pipeline 2.1 pipeline 2.2')
+      expect(subject.call(input)).to eq('pipeline 1.1 pipeline 1.2 pipeline 2.1 pipeline 2.2')
     end
   end
 end

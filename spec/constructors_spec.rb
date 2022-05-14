@@ -11,23 +11,23 @@ RSpec.describe 'NxtPipeline' do
     end
 
     before do
-      NxtPipeline.constructor(:test) do |step, arg:|
-        { arg: [arg, "global test constructor"].join(' ') }
+      NxtPipeline.constructor(:test) do |acc|
+        [acc, "global test constructor"].join(' ')
       end
 
-      NxtPipeline.constructor(:global) do |step, arg:|
-        { arg: [arg, "global constructor"].join(' ') }
+      NxtPipeline.constructor(:global) do |acc|
+        [acc, "global constructor"].join(' ')
       end
     end
 
     subject do
       NxtPipeline.new do |pipeline|
-        pipeline.constructor(:test) do |step, arg:|
-          { arg: [arg, "local test constructor"].join(' ') }
+        pipeline.constructor(:test) do |acc|
+          [acc, "local test constructor"].join(' ')
         end
 
-        pipeline.constructor(:local) do |step, arg:|
-          { arg: [arg, "local constructor"].join(' ') }
+        pipeline.constructor(:local) do |acc|
+          [acc, "local constructor"].join(' ')
         end
 
         pipeline.step Stringer, constructor: :test
@@ -37,7 +37,7 @@ RSpec.describe 'NxtPipeline' do
     end
 
     it 'uses the correct constructors' do
-      expect(subject.call(arg: '')).to eq(arg: ' local test constructor global constructor local constructor')
+      expect(subject.call('')).to eq(' local test constructor global constructor local constructor')
     end
   end
 end

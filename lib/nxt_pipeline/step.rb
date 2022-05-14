@@ -34,20 +34,20 @@ module NxtPipeline
     alias_method :name=, :to_s=
     alias_method :name, :to_s
 
-    def call(**change_set)
+    def call(acc)
       track_execution_time do
-        set_mapped_options(change_set)
-        guard_args = [change_set, self]
+        set_mapped_options(acc)
+        guard_args = [acc, self]
 
-        callbacks.run(:before, :step, change_set)
+        callbacks.run(:before, :step, acc)
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          callbacks.around(:step, change_set) do
-            set_result(change_set)
+          callbacks.around(:step, acc) do
+            set_result(acc)
           end
         end
 
-        callbacks.run(:after, :step, change_set)
+        callbacks.run(:after, :step, acc)
 
         set_status
         result
@@ -58,9 +58,9 @@ module NxtPipeline
       raise
     end
 
-    def set_mapped_options(change_set)
+    def set_mapped_options(acc)
       mapper = options_mapper || default_options_mapper
-      mapper_args = [change_set, self].take(mapper.arity)
+      mapper_args = [acc, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
     end
 
@@ -81,19 +81,15 @@ module NxtPipeline
       !execute_callable(unless_guard, args)
     end
 
-    def set_result(change_set)
-      args = [self, change_set]
+    def set_result(acc)
+      args = [acc, self]
       self.result = execute_callable(constructor, args)
     end
 
     def execute_callable(callable, args)
       args = args.take(callable.arity) unless callable.arity.negative?
 
-      if args.last.is_a?(Hash)
-        callable.call(*args.take(args.length - 1), **args.last)
-      else
-        callable.call(*args)
-      end
+      callable.call(*args)
     end
 
     def if_guard

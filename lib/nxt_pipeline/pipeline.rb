@@ -1,7 +1,7 @@
 module NxtPipeline
   class Pipeline
-    def self.call(configuration = nil, resolvers: [], **opts, &block)
-      new(configuration, resolvers: resolvers, &block).call(**opts)
+    def self.call(acc, configuration = nil, resolvers: [], &block)
+      new(configuration, resolvers: resolvers, &block).call(acc)
     end
 
     def initialize(configuration = nil, resolvers: [], &block)
@@ -28,13 +28,13 @@ module NxtPipeline
     attr_accessor :logger
     attr_reader :result
 
-    def constructor(name, **opts, &constructor)
+    def constructor(name, default: false, &constructor)
       name = name.to_sym
       raise StandardError, "Already registered step :#{name}" if constructors[name]
 
-      constructors[name] = Constructor.new(name, **opts, &constructor)
+      constructors[name] = constructor
 
-      return unless opts.fetch(:default, false)
+      return unless default
       set_default_constructor(name)
     end
 
@@ -97,7 +97,8 @@ module NxtPipeline
       if constructor.present?
         # p.step Service, constructor: ->(step, **changes) { ... }
         if constructor.respond_to?(:call)
-          resolved_constructor = Constructor.new(:block, **opts, &constructor)
+          # resolved_constructor = Constructor.new(:block, **opts, &constructor)
+          resolved_constructor = constructor
         else
           # p.step Service, constructor: :service
           resolved_constructor = constructors.fetch(constructor) {
@@ -106,7 +107,8 @@ module NxtPipeline
         end
       elsif block_given?
         # p.step :inline do ... end
-        resolved_constructor = Constructor.new(:block, **opts, &block)
+        # resolved_constructor = Constructor.new(:block, **opts, &block)
+        resolved_constructor = block
       else
         # If no constructor was given try to resolve one
         resolvers = constructor_resolvers.any? ? constructor_resolvers : []
@@ -117,7 +119,8 @@ module NxtPipeline
 
         # resolved constructor is a proc
         if constructor_from_resolvers.is_a?(Proc)
-          resolved_constructor = Constructor.new(:proc, **opts, &constructor_from_resolvers)
+          # resolved_constructor = Constructor.new(:proc, **opts, &constructor_from_resolvers)
+          resolved_constructor = constructor_from_resolvers
         elsif constructor_from_resolvers.present?
           resolved_constructor = constructors[constructor_from_resolvers]
         else
@@ -128,10 +131,10 @@ module NxtPipeline
 
         # if still no constructor resolved
         unless resolved_constructor.present?
-          # see if a proc or method was passed and we can execute it
           if argument.is_a?(NxtPipeline::Pipeline)
-            pipeline_constructor = ->(_, **changes) { argument.call(**changes) }
-            resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
+            pipeline_constructor = ->(changes) { argument.call(changes) }
+            # resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
+            resolved_constructor = pipeline_constructor
           # last chance: default constructor
           elsif default_constructor.present?
             resolved_constructor = default_constructor
@@ -145,15 +148,15 @@ module NxtPipeline
       register_step(argument, resolved_constructor, callbacks, **opts)
     end
 
-    def call(**change_set, &block)
+    def call(acc, &block)
       reset
 
       configure(&block) if block_given?
-      callbacks.run(:before, :execution, change_set)
+      callbacks.run(:before, :execution, acc)
 
-      self.result = callbacks.around :execution, change_set do
-        steps.inject(change_set) do |changes, step|
-          self.result = call_step(step, **changes)
+      self.result = callbacks.around :execution, acc do
+        steps.inject(acc) do |changes, step|
+          self.result = call_step(step, changes)
         rescue StandardError => error
           decorate_error_with_details(error, changes, step, logger)
           handle_error_of_step(error)
@@ -162,7 +165,7 @@ module NxtPipeline
       end
 
       # callbacks.run(:after, :execution, result) TODO: Better pass result to callback?
-      self.result = callbacks.run(:after, :execution, change_set) || result
+      self.result = callbacks.run(:after, :execution, acc) || result
     rescue StandardError => error
       handle_step_error(error)
     end
@@ -173,7 +176,7 @@ module NxtPipeline
 
       raise unless callback
 
-      callback.call(current_step, current_arg, error)
+      callback.call(current_arg, current_step, error)
     end
 
     def on_errors(*errors, halt_on_error: true, &callback)
@@ -225,12 +228,12 @@ module NxtPipeline
       @default_constructor ||= constructors[default_constructor_name.to_sym]
     end
 
-    def call_step(step, **change_set)
+    def call_step(step, acc)
       self.current_step = step
-      self.current_arg = change_set
-      result = step.call(**change_set)
+      self.current_arg = acc
+      result = step.call(acc)
       log_step(step)
-      result || change_set
+      result || acc
     end
 
     def find_error_callback(error)
@@ -248,9 +251,9 @@ module NxtPipeline
       self.current_step = nil
     end
 
-    def default_constructor_resolver
-      [->(argument, _) { argument }]
-    end
+    # def default_constructor_resolver
+    #   [->(argument, _) { argument }]
+    # end
 
     def decorate_error_with_details(error, change_set, step, logger)
       error.define_singleton_method :details do
@@ -274,7 +277,7 @@ module NxtPipeline
       log_step(current_step)
       raise error unless error_callback.present?
 
-      error_callback.call(current_step, current_arg, error)
+      error_callback.call(current_arg, current_step, error)
     end
   end
 end

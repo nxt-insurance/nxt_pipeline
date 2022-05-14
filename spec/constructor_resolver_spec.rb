@@ -18,9 +18,8 @@ RSpec.describe NxtPipeline::Pipeline do
         # dynamically resolve to use a proc as constructor
         pipeline.constructor_resolver do |argument, **opts|
           argument.is_a?(Class) &&
-            ->(step, arg:) {
-              result = step.argument.new(arg, opts.fetch(:operation)).call
-              { arg: result }
+            ->(acc, step) {
+              step.argument.new(acc, opts.fetch(:operation)).call
             }
         end
 
@@ -29,11 +28,11 @@ RSpec.describe NxtPipeline::Pipeline do
           argument.is_a?(String) && :dynamic
         end
 
-        pipeline.constructor(:dynamic) do |step, arg:|
+        pipeline.constructor(:dynamic) do |acc, step|
           if step.argument == 'multiply'
-            { arg: arg * step.multiplier }
+            acc * step.multiplier
           elsif step.argument == 'symbolize'
-            { arg: arg.to_sym }
+            acc.to_sym
           else
             raise ArgumentError, "Don't know how to deal with argument: #{step.argument}"
           end
@@ -42,14 +41,14 @@ RSpec.describe NxtPipeline::Pipeline do
         pipeline.step Transform, operation: 'upcase'
         pipeline.step 'multiply', multiplier: 2
         pipeline.step 'symbolize'
-        pipeline.step :extract_value do |step, arg:|
-          arg
+        pipeline.step :extract_value do |acc|
+          acc
         end
       end
     end
 
     it 'resolves the steps' do
-      expect(subject.call(arg: 'hanna')).to eq(:HANNAHANNA)
+      expect(subject.call('hanna')).to eq(:HANNAHANNA)
     end
   end
 end

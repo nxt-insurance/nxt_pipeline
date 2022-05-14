@@ -23,7 +23,7 @@ module NxtPipeline
       return execution.call unless around_callbacks.any?
 
       callback_chain = around_callbacks.reverse.inject(execution) do |previous, callback|
-        -> { callback.call(pipeline, change_set, previous) }
+        -> { callback.call(change_set, previous, pipeline) }
       end
 
       callback_chain.call
@@ -34,8 +34,8 @@ module NxtPipeline
     attr_reader :registry, :pipeline
 
     def run_callback(callback, change_set)
-      args = [pipeline, change_set]
-      args = args.take(callback.arity)
+      args = [change_set, pipeline]
+      args = args.take(callback.arity) unless callback.arity.negative?
       callback.call(*args)
     end
 

@@ -56,9 +56,8 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'with constructor' do
     subject do
       NxtPipeline::Pipeline.new do |p|
-        p.constructor(:service, default: true) do |step, strings:|
-          result = step.argument.new(strings).call
-          result && { strings: result }
+        p.constructor(:service, default: true) do |strings, step|
+          step.argument.new(strings).call
         end
 
         p.step Compacter
@@ -70,7 +69,7 @@ RSpec.describe NxtPipeline::Pipeline do
     let(:input) { ['', nil, 'andy  ', '   hanna'] }
 
     it do
-      expect(subject.call(strings: input)).to eq(strings: ['ANDY', 'HANNA'])
+      expect(subject.call(input)).to eq(['ANDY', 'HANNA'])
     end
   end
 
