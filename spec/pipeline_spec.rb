@@ -1,28 +1,4 @@
 RSpec.describe NxtPipeline::Pipeline do
-  class StepOne
-    def initialize(word:)
-      @word = word
-    end
-
-    attr_reader :word, :operation
-
-    def call
-      word.upcase
-    end
-  end
-
-  class StepSkipped < StepOne
-    def call
-      nil
-    end
-  end
-
-  class StepWithArgumentError < StepOne
-    def call
-      raise ArgumentError, 'This is not a fish'
-    end
-  end
-
   CustomError = Class.new(ArgumentError)
   OtherCustomError = Class.new(CustomError)
 
@@ -31,17 +7,17 @@ RSpec.describe NxtPipeline::Pipeline do
       NxtPipeline.new do |pipeline|
         pipeline.constructor(:service) do |word, step|
           step.to_s = step.argument.name
-          step.argument.new(word: word).call
+          step.argument.new(word, step.operation).call
         end
 
-        pipeline.step StepOne, constructor: :service
-        pipeline.step StepSkipped, constructor: :service
+        pipeline.step StringTransformer, operation: :upcase, constructor: :service
+        pipeline.step NilService, constructor: ->(_, step) { step.argument.call }
       end
     end
 
     it 'indexes the steps' do
-      expect(subject.steps.find { |s| s.argument == StepOne }.index).to eq(0)
-      expect(subject.steps.find { |s| s.argument == StepSkipped }.index).to eq(1)
+      expect(subject.steps.find { |s| s.argument == StringTransformer }.index).to eq(0)
+      expect(subject.steps.find { |s| s.argument == NilService }.index).to eq(1)
     end
 
     it 'executes the steps' do
@@ -58,7 +34,7 @@ RSpec.describe NxtPipeline::Pipeline do
     it 'logs the steps' do
       subject.call('hanna')
 
-      expect(subject.logger.log).to eq({"StepOne"=>:success, "StepSkipped"=>:skipped})
+      expect(subject.logger.log).to eq("StringTransformer"=>:success, "NilService"=>:skipped)
     end
   end
 
@@ -81,14 +57,17 @@ RSpec.describe NxtPipeline::Pipeline do
   context 'when there is an error' do
     subject do
       NxtPipeline.new do |pipeline|
-        pipeline.constructor(:service, default: true) do |acc, step|
-          step.name = step.argument.to_s
-          step.argument.new(word: acc).call
+        pipeline.constructor(:service) do |acc, step|
+          step.argument.new(acc, step.operation).call
         end
 
-        pipeline.step StepOne
-        pipeline.step StepSkipped, to_s: 'This step was skipped'
-        pipeline.step StepWithArgumentError
+        pipeline.constructor(:error) do |acc, step|
+          step.argument.new(step.error_class).call
+        end
+
+        pipeline.step StringTransformer, operation: :upcase, constructor: :service
+        pipeline.step NilService, to_s: 'This step was skipped', constructor: ->(_, step) { step.argument.call }
+        pipeline.step ErrorRaiser, error_class: ArgumentError, constructor: :error
 
         pipeline.on_error ArgumentError do |opts, step, error|
           "Step #{step} was called with #{opts} and failed with #{error.class}"
@@ -101,16 +80,16 @@ RSpec.describe NxtPipeline::Pipeline do
     end
 
     it 'executes the callback' do
-      expect(subject.call('hanna')).to eq('Step StepWithArgumentError was called with HANNA and failed with ArgumentError')
+      expect(subject.call('hanna')).to eq('Step ErrorRaiser was called with HANNA and failed with ArgumentError')
     end
 
     it 'logs the steps' do
       subject.call('hanna')
 
       expect(subject.logger.log).to eq(
-        "StepOne" => :success,
+        "StringTransformer" => :success,
         "This step was skipped" => :skipped,
-        "StepWithArgumentError" => :failed
+        "ErrorRaiser" => :failed
       )
     end
 
@@ -144,7 +123,7 @@ RSpec.describe NxtPipeline::Pipeline do
       subject.call('hanna')
       argument_error = subject.steps.map(&:error).last
       expect(argument_error.details.logger).to eq(subject.logger)
-      expect(argument_error.details.step.to_s).to eq('StepWithArgumentError')
+      expect(argument_error.details.step.to_s).to eq('ErrorRaiser')
       expect(argument_error.details.change_set).to eq("HANNA")
     end
   end
@@ -398,30 +377,36 @@ RSpec.describe NxtPipeline::Pipeline do
   end
 
   context 'when used inside a class' do
-    class Transformer
-      def initialize(string)
-        @string = string
-      end
+    let(:test_class) do
+      Class.new do
+        def initialize(string)
+          @string = string
+        end
 
-      def call
-        pipeline.call(@string)
-      end
+        def call
+          pipeline.call(string)
+        end
 
-      def pipeline
-        NxtPipeline::Pipeline.new do |pipeline|
-          pipeline.step :upcase do |arg|
-            transform_upcase(arg)
+        private
+
+        attr_reader :string
+
+        def pipeline
+          NxtPipeline.new do |pipeline|
+            pipeline.step :transform do |acc|
+              transform_upcase(acc)
+            end
           end
         end
-      end
 
-      def transform_upcase(string)
-        string.upcase
+        def transform_upcase(string)
+          string.upcase
+        end
       end
     end
 
     subject do
-      Transformer.new('hanna').call
+      test_class.new('hanna').call
     end
 
     it 'can access the methods in the scope' do
@@ -430,16 +415,6 @@ RSpec.describe NxtPipeline::Pipeline do
   end
 
   context 'logger' do
-    class CustomLogger
-      def call(step)
-        log << step.to_s
-      end
-
-      def log
-        @log ||= []
-      end
-    end
-
     subject do
       NxtPipeline::Pipeline.new do |pipeline|
         pipeline.constructor(:adder) do |number, step|
@@ -480,8 +455,8 @@ RSpec.describe NxtPipeline::Pipeline do
 
     before do
       subject.configure do |pipeline|
-        pipeline.step :transformer, method: :upcase do |acc, step|
-          acc.send(step.method)
+        pipeline.step :transformer, operation: :upcase do |acc, step|
+          acc.send(step.operation)
         end
       end
     end
@@ -492,8 +467,8 @@ RSpec.describe NxtPipeline::Pipeline do
 
     it 'returns itself' do
       expect(subject.configure do |pipeline|
-        pipeline.step :transformer, method: :upcase do |arg, step|
-          arg.send(step.method)
+        pipeline.step :transformer, operation: :upcase do |arg, step|
+          arg.send(step.operation)
         end
       end).to eq(subject)
     end

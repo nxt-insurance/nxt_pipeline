@@ -1,18 +1,4 @@
 RSpec.describe NxtPipeline::Pipeline do
-  class StepOne
-    def initialize(word:)
-      @word = word
-    end
-
-    def call
-      @word.upcase
-    end
-
-    def to_s
-      self.class.name
-    end
-  end
-
   subject do
     NxtPipeline.new do |pipeline|
       pipeline.constructor(:service, default: true) do |step, **opts|
@@ -26,7 +12,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: 'hanna') do |p|
-            p.step StepOne, constructor: :service, if: -> { false }
+            p.step StringTransformer, operation: :upcase, constructor: :service, if: -> { false }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -38,7 +24,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: false) do |p|
-            p.step StepOne, if: -> (word:) { word }
+            p.step StringTransformer, operation: :upcase, if: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -50,7 +36,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: false) do |p|
-            p.step StepOne, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
+            p.step StringTransformer, operation: :upcase, if: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -64,7 +50,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: 'hanna') do |p|
-            p.step StepOne, unless: -> { true }
+            p.step StringTransformer, operation: :upcase, unless: -> { true }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -76,7 +62,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: true) do |p|
-            p.step StepOne, unless: -> (word:) { word }
+            p.step StringTransformer, operation: :upcase, unless: -> (word:) { word }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)
@@ -88,7 +74,7 @@ RSpec.describe NxtPipeline::Pipeline do
       context 'and the guard claus applies' do
         it 'skips the step' do
           subject.call(word: true) do |p|
-            p.step StepOne, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
+            p.step StringTransformer, operation: :upcase, unless: -> (opts, step) { step.is_a?(NxtPipeline::Step) && opts.fetch(:word) }
           end
 
           expect(subject.logger.log.values.last).to eq(:skipped)

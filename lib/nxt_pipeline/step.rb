@@ -1,13 +1,11 @@
 module NxtPipeline
   class Step
     def initialize(argument, constructor, index, pipeline, callbacks, **opts)
-      define_attr_readers(opts)
-
       @pipeline = pipeline
       @callbacks = callbacks
       @argument = argument
       @index = index
-      @opts = opts
+      @opts = opts.symbolize_keys
       @constructor = constructor
       @to_s = "#{opts.merge(argument: argument)}"
       @options_mapper = opts[:map_options]
@@ -16,11 +14,13 @@ module NxtPipeline
       @result = nil
       @error = nil
       @mapped_options = nil
+      @meta_data = nil
+
+      define_attr_readers(opts)
     end
 
     attr_reader :argument,
       :result,
-      :status,
       :execution_started_at,
       :execution_finished_at,
       :execution_duration,
@@ -30,9 +30,7 @@ module NxtPipeline
       :mapped_options
 
     attr_writer :to_s
-
-    alias_method :name=, :to_s=
-    alias_method :name, :to_s
+    attr_accessor :meta_data, :status
 
     def call(acc)
       track_execution_time do
@@ -70,7 +68,7 @@ module NxtPipeline
 
     private
 
-    attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
+    attr_writer :result, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
     attr_reader :constructor, :options_mapper, :pipeline, :callbacks
 
     def evaluate_if_guard(args)
@@ -105,6 +103,11 @@ module NxtPipeline
     end
 
     def define_attr_readers(opts)
+      # to_s, if, unless, constructor
+      # TODO: We should only allow readers for methods that do not yet exist
+      disallowed_options = (opts.keys.map(&:to_sym) - [:to_s]) & methods
+      raise ArgumentError, "#{disallowed_options} are not allowed as options" if disallowed_options.any?
+
       opts.each do |key, value|
         define_singleton_method key.to_s do
           value

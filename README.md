@@ -1,8 +1,18 @@
-<[![CircleCI](https://circleci.com/gh/nxt-insurance/nxt_pipeline.svg?style=svg)](https://circleci.com/gh/nxt-insurance/nxt_pipeline)
+[![CircleCI](https://circleci.com/gh/nxt-insurance/nxt_pipeline.svg?style=svg)](https://circleci.com/gh/nxt-insurance/nxt_pipeline)
 
 # NxtPipeline
 
-The idea of nxt_pipeline is to provide the functionality to reduce over service objects and callables in general.
+NxtPipeline is an orchestration framework for your service objects or function objects, how I like to call them. 
+Service objects are a very wide spread way of organizing code in the Ruby and Rails communities. Since it's little classes
+doing one thing you can think of them as function objects and thus often share a common interface in a project. There 
+are also many opinionated frameworks out there that normalize the usage of service objects and provide a specific way 
+of writing service objects but also allow to orchestrate (reduce) service objects. 
+Compare [light-service](https://github.com/adomokos/light-service) for instance. 
+
+The idea of NxtPipeline was to build a flexible orchestration framework for service objects without them having to conform
+to a specific interface. Instead NxtPipeline expects you to specify how to execute different kinds of service objects 
+through so called constructors and thereby does not dictate on you how to write service objects. Nevertheless this still 
+mostly makes sense if your service objects share common interfaces too keep the necessary configuration to a minimum. 
 
 ## Installation
 
@@ -22,76 +32,129 @@ Or install it yourself as:
 
 ## Usage
 
+### Example
+
+Orchestrating validator service objects with NxtPipeline. 
+
+```ruby
+class Validator
+  attr_accessor :error
+end
+
+class TypeChecker < Validator
+  def initialize(value, type:)
+    @value = value
+    @type = type
+  end
+
+  attr_reader :value, :type
+
+  def call
+    return if value.is_a?(type)
+    self.error = "Value does not match type #{type}"
+  end
+end
+
+class MinSize < Validator
+  def initialize(value, size:)
+    @value = value
+    @size = size
+  end
+
+  attr_reader :value, :size
+
+  def call
+    return if value.size >= size
+    self.error = "Value size must be greater #{size-1}"
+  end
+end
+
+class MaxSize < Validator
+  def initialize(value, size:)
+    @value = value
+    @size = size
+  end
+
+  attr_reader :value, :size
+
+  def call
+    return if value.size <= size
+    self.error = "Value size must be less #{size+1}"
+  end
+end
+
+class Uniqueness < Validator
+  def initialize(value, scope:)
+    @value = value
+    @scope = scope
+  end
+
+  attr_reader :value, :scope
+
+  def call
+    return if scope.count { |item| item == value }
+    self.error = "Value is not unique in: #{scope}"
+  end
+end
+
+result = NxtPipeline.call('aki') do |p|
+  p.constructor(:validator, default: true) do |acc, step|
+    validator = step.argument.new(acc.fetch(:value), **step.options)
+    validator.call
+    acc[:errors] << validator.error if validator.error.present?
+
+    acc
+  end
+
+  p.step TypeChecker, options: { type: String }
+  p.step MinSize, options: { size: 4 }
+  p.step MaxSize, options: { size: 10 }
+  p.step Uniqueness, options: { scope: ['andy', 'aki', 'lütfi', 'rapha'] }
+end
+
+result # => { value: 'aki', errors: ['Value size must be greater 3'] } 
+```
+
 ### Constructors
 
 In order to reduce over your service objects you have to define constructors so that the pipeline knows how to execute
-each step. Consider the following pipeline that processes an array of strings:
+a specific step. You can define constructors globally and specific to a pipeline. 
+
+Make a constructor available for all pipelines of your project by defining it globally with:
 
 ```ruby
-class Upcaser
-  def initialize(strings)
-    @strings = strings
-  end
+NxtPipeline.constructor(:service) do |acc, step|
+  validator = step.argument.new(acc.fetch(:value), **step.options)
+  validator.call
+  acc[:errors] << validator.error if validator.error.present?
 
-  def call
-    @strings.map(&:upcase)
-  end
+  acc
 end
+```
 
-class Stripper
-  def initialize(strings)
-    @strings = strings
+Or define a constructor only locally for a specific pipeline.
+
+```ruby
+NxtPipeline.new('aki') do |p|
+  p.constructor(:validator, default: true) do |acc, step|
+    validator = step.argument.new(acc.fetch(:value), **step.options)
+    validator.call
+    acc[:errors] << validator.error if validator.error.present?
+
+    acc
   end
 
-  def call
-    @strings.map(&:strip)
-  end
+  p.step TypeChecker, options: { type: String }
+  # ...
 end
-
-class Compacter
-  def initialize(strings)
-    @strings = strings
-  end
-
-  def call
-    @strings.reject(&:blank?)
-  end
-end
-
-class Notifier < ApplicationJob
-  def perform_later(**args)
-    # ... TODO
-  end
-end
-
-pipeline = NxtPipeline.new do |p|
-  # service objects 
-  p.constructor(:service, default: true) do |step, arg:|
-    result = step.argument.new(arg).call
-    result && { arg: result }
-  end
-
-  # active job jobs
-  p.constructor(:job) do |step, arg:|
-    step.argument.perform_later(**arg).call
-    { arg: arg }
-  end
-
-  p.step Compacter
-  p.step Stripper
-  p.step Upcaser
-  p.step Notifier, constructor: :job
-end
-
-pipeline.call(strings: ['Ruby', '', nil, 'JavaScript'])
 ```
 
 ### Defining steps
 
 Once your pipeline knows how to execute your steps you can add those. The `pipeline.step` method expects at least one
 argument which you can access in the constructor through `step.argument`. You can also pass in additional options
-that you can access through readers your step. The `constructor:` option defines which constructor to use for a step
-where as you can name a step with th `to_s:` option.
+that you can access through readers of a step. The `constructor:` option defines which constructor to use for a step
+where as you can name a step with the `to_s:` option.
 
 ```ruby
 # explicitly define which constructor to use 
@@ -103,15 +166,19 @@ pipeline.step MyOtherServiceClass
 # Define a step name
 pipeline.step MyOtherServiceClass, to_s: 'First Step'
 # Or simply execute a (named) block
-pipeline.step :step_name_for_better_log do |step, arg:|
+pipeline.step :step_name_for_better_log do |acc, step|
   # ...
 end
 # Which is the same as above
-pipeline.step to_s: 'This is the same as above' do |step, arg:|
+pipeline.step to_s: 'This is the same as above' do |acc, step|
   # ... 
 end
+```
 
-# You can also add multiple steps at once which is especially useful to dynamically configure a pipeline for execution
+Defining multiple steps at once. This is especially useful to dynamically configure a pipeline for execution and 
+can potentially even come from a yaml configuration or from the database. 
+
+```ruby
 pipeline.steps([
   [MyServiceClass, constructor: :service],
   [MyOtherServiceClass, constructor: :service],
@@ -128,7 +195,8 @@ pipeline.steps = [
 
 ### Execution
 
-Once a pipeline contains steps you can run it with:
+Once a pipeline contains steps you can call it with `call(accumulator)` whereas it expects you to inject the accumulator
+as argument that is then passed through all steps.
 
 ```ruby
 pipeline.call(arg: 'initial argument')
@@ -146,9 +214,7 @@ You can also create a new instance of a pipeline and directly run it with `call`
 
 ```ruby
 NxtPipeline.call(arg: 'initial argument') do |p|
-  p.step do |_, arg:|
-    { arg: arg.upcase }
-  end
+  p.steps # ...
 end
 ```
 
@@ -177,11 +243,11 @@ pipeline.steps.first
 ### Guard clauses
 
 You can also define guard clauses that take a proc to prevent the execution of a step.
-When the guard takes an argument the step argument is yielded.
+A guard can accept the change set and the step as arguments.
 
  ```ruby
- pipeline.call(arg: 'initial argument') do |p|
-  p.step MyServiceClass, if: -> (arg:) { arg == 'initial argument' }
+ pipeline.call('initial argument') do |p|
+  p.step MyServiceClass, if: -> (acc, step) { acc == 'initial argument' }
   p.step MyOtherServiceClass, unless: -> { false }
 end
 
@@ -193,24 +259,22 @@ Apart from defining constructors and steps you can also define error callbacks.
 
 ```ruby
 NxtPipeline.new do |p|
-  p.step do |_, arg:|
-    { arg: arg.upcase }
-  end
+  p.step # ... 
 
-  p.on_error MyCustomError do |step, opts, error|
+  p.on_error MyCustomError do |acc, step, error|
     # First matching error callback will be executed!
   end
 
-  p.on_errors ArgumentError, KeyError do |step, opts, error|
+  p.on_errors ArgumentError, KeyError do |acc, step, error|
     # First matching error callback will be executed!
   end
 
-  p.on_errors YetAnotherError, halt_on_error: false do |step, opts, error|
+  p.on_errors YetAnotherError, halt_on_error: false do |acc, step, error|
     # After executing the callback the pipeline will not halt but continue to
     # execute the next steps.
   end
 
-  p.on_errors do |step, opts, error|
+  p.on_errors do |acc, step, error|
     # This will match all errors inheriting from StandardError
   end
 end
@@ -219,7 +283,8 @@ end
 ### Before, around and after callbacks
 
 You can also define callbacks :before, :around and :after each step and or the `#execute` method. You can also register
-multiple callbacks, but probably you want to keep them to a minimum to not end up in hell.
+multiple callbacks, but probably you want to keep them to a minimum to not end up in hell. Also note that before and
+after callbacks will run even if a step was skipped through a guard clause. 
 
 #### Step callbacks
 
@@ -318,7 +383,7 @@ NxtPipeline.new do |pipeline|
   pipeline.step Transform, operation: 'upcase'
   pipeline.step 'multiply', multiplier: 2
   pipeline.step 'symbolize'
-  pipeline.step :extract_value do |step, arg:|
+  pipeline.step :extract_value do |arg|
     arg
   end
 end
@@ -334,7 +399,7 @@ Then you then create a preconfigure pipeline by passing in the name of the confi
 ```ruby
 # Define configurations nn your initializer or somewhere upfront 
 NxtPipeline.configuration(:test_processor) do |pipeline|
-  pipeline.constructor(:processor) do |step, arg:|
+  pipeline.constructor(:processor) do |arg, step|
     { arg: step.argument.call(step, arg: arg) }
   end
 end
@@ -349,14 +414,17 @@ end
 
 # Later create a pipeline with a previously defined configuration
 NxtPipeline.new(:test_processor) do |p|
-  p.step ->(_, arg:) { arg + 'first ' }, constructor: :processor
-  p.step ->(_, arg:) { arg + 'second ' }, constructor: :processor
-  p.step ->(_, arg:) { arg + 'third' }, constructor: :processor
+  p.step ->(arg) { arg + 'first ' }, constructor: :processor
+  p.step ->(arg) { arg + 'second ' }, constructor: :processor
+  p.step ->(arg) { arg + 'third' }, constructor: :processor
 end
 ```
 
 ## Topics
-- Constructors should take arg as first and step as second arg
+
+- Allow defaults for global constructors
+- Change readers for steps
+
 
 ## Development
 
@@ -373,4 +441,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/nxt-in
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
->
