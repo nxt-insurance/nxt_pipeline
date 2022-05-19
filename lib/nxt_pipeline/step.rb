@@ -1,13 +1,16 @@
 module NxtPipeline
   class Step
+    RESERVED_OPTION_KEYS  = %i[to_s unless if]
+
     def initialize(argument, constructor, index, pipeline, callbacks, **opts)
+      @opts = opts.symbolize_keys
+
       @pipeline = pipeline
       @callbacks = callbacks
       @argument = argument
       @index = index
-      @opts = opts.symbolize_keys
       @constructor = constructor
-      @to_s = "#{opts.merge(argument: argument)}"
+      @to_s = opts.fetch(:to_s) { argument }
       @options_mapper = opts[:map_options]
 
       @status = nil
@@ -16,7 +19,7 @@ module NxtPipeline
       @mapped_options = nil
       @meta_data = nil
 
-      define_attr_readers(opts)
+      define_option_readers
     end
 
     attr_reader :argument,
@@ -102,13 +105,10 @@ module NxtPipeline
       -> { result }
     end
 
-    def define_attr_readers(opts)
-      # to_s, if, unless, constructor
-      # TODO: We should only allow readers for methods that do not yet exist
-      disallowed_options = (opts.keys.map(&:to_sym) - [:to_s]) & methods
-      raise ArgumentError, "#{disallowed_options} are not allowed as options" if disallowed_options.any?
+    def define_option_readers
+      raise ArgumentError, "#{invalid_option_keys} are not allowed as options" if invalid_option_keys.any?
 
-      opts.each do |key, value|
+      options_without_reserved_options.each do |key, value|
         define_singleton_method key.to_s do
           value
         end
@@ -142,6 +142,18 @@ module NxtPipeline
     def default_options_mapper
       # returns an empty hash
       ->(_) { {} }
+    end
+
+    def options_without_reserved_options
+      opts.except(*reserved_option_keys)
+    end
+
+    def reserved_option_keys
+      @reserved_option_keys ||= methods + RESERVED_OPTION_KEYS
+    end
+
+    def invalid_option_keys
+      opts.except(*RESERVED_OPTION_KEYS).keys & methods
     end
   end
 end

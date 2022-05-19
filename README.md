@@ -391,7 +391,7 @@ end
 
 ### Configurations
 
-You probably do not have that many different kind of steps that you execute within a pipeline. Otherwise the whole
+You probably do not have that many different kinds of steps that you execute within your pipelines. Otherwise the whole
 concept does not make much sense. To make constructing a pipeline simpler you can therefore define configurations on
 a global level simply by providing a name for a configuration along with a configuration block. 
 Then you then create a preconfigure pipeline by passing in the name of the configuration when creating a new pipeline.
@@ -423,8 +423,6 @@ end
 ## Topics
 
 - Allow defaults for global constructors
-- Change readers for steps
-
 
 ## Development
 
