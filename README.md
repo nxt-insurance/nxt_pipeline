@@ -169,10 +169,6 @@ pipeline.step MyOtherServiceClass, to_s: 'First Step'
 pipeline.step :step_name_for_better_log do |acc, step|
   # ...
 end
-# Which is the same as above
-pipeline.step to_s: 'This is the same as above' do |acc, step|
-  # ... 
-end
 ```
 
 Defining multiple steps at once. This is especially useful to dynamically configure a pipeline for execution and 
@@ -219,25 +215,13 @@ end
 ```
 
 You can query the steps of your pipeline simply by calling `pipeline.steps`. A NxtPipeline::Step will provide you with
-an interface to it's type, options, status (:success, :skipped, :failed), execution_finished_at execution_started_at,
+an interface for options, status, execution_finished_at execution_started_at,
 execution_duration, result, error and the index in the pipeline.
 
 ```
 pipeline.steps.first
-# will give you something like this:
-
-#<NxtPipeline::Step:0x00007f83eb399448
- @constructor=
-  #<Proc:0x00007f83eb399498@/Users/andy/workspace/nxt_pipeline/spec/pipeline_spec.rb:467>,
- @error=nil,
- @index=0,
- @opts={:to_s=>:transformer, :method=>:upcase},
- @result=nil,
- @status=nil,
- @type=:transformer
- @execution_duration=1.0e-05,
- @execution_finished_at=2020-10-22 15:52:55.806417 +0100,
- @execution_started_at=2020-10-22 15:52:55.806407 +0100,>
+# will give you a step object
+#<NxtPipeline::Step:0x00007f83eb399448...>
 ```
 
 ### Guard clauses
