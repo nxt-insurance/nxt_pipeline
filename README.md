@@ -2,17 +2,17 @@
 
 # NxtPipeline
 
-NxtPipeline is an orchestration framework for your service objects or function objects, how I like to call them. 
+NxtPipeline is an orchestration framework for your service objects or function objects, how I like to call them.
 Service objects are a very wide spread way of organizing code in the Ruby and Rails communities. Since it's little classes
-doing one thing you can think of them as function objects and thus often share a common interface in a project. There 
-are also many opinionated frameworks out there that normalize the usage of service objects and provide a specific way 
-of writing service objects but also allow to orchestrate (reduce) service objects. 
-Compare [light-service](https://github.com/adomokos/light-service) for instance. 
+doing one thing you can think of them as function objects and thus often share a common interface in a project. There
+are also many opinionated frameworks out there that normalize the usage of service objects and provide a specific way
+of writing service objects but also allow to orchestrate (reduce) service objects.
+Compare [light-service](https://github.com/adomokos/light-service) for instance.
 
 The idea of NxtPipeline was to build a flexible orchestration framework for service objects without them having to conform
-to a specific interface. Instead NxtPipeline expects you to specify how to execute different kinds of service objects 
-through so called constructors and thereby does not dictate on you how to write service objects. Nevertheless this still 
-mostly makes sense if your service objects share common interfaces too keep the necessary configuration to a minimum. 
+to a specific interface. Instead NxtPipeline expects you to specify how to execute different kinds of service objects
+through so called constructors and thereby does not dictate on you how to write service objects. Nevertheless this still
+mostly makes sense if your service objects share common interfaces too keep the necessary configuration to a minimum.
 
 ## Installation
 
@@ -34,7 +34,7 @@ Or install it yourself as:
 
 ### Example
 
-Orchestrating validator service objects with NxtPipeline. 
+Orchestrating validator service objects with NxtPipeline.
 
 ```ruby
 class Validator
@@ -118,7 +118,7 @@ result # => { value: 'aki', errors: ['Value size must be greater 3'] }
 ### Constructors
 
 In order to reduce over your service objects you have to define constructors so that the pipeline knows how to execute
-a specific step. You can define constructors globally and specific to a pipeline. 
+a specific step. You can define constructors globally and specific to a pipeline.
 
 Make a constructor available for all pipelines of your project by defining it globally with:
 
@@ -171,8 +171,8 @@ pipeline.step :step_name_for_better_log do |acc, step|
 end
 ```
 
-Defining multiple steps at once. This is especially useful to dynamically configure a pipeline for execution and 
-can potentially even come from a yaml configuration or from the database. 
+Defining multiple steps at once. This is especially useful to dynamically configure a pipeline for execution and
+can potentially even come from a yaml configuration or from the database.
 
 ```ruby
 pipeline.steps([
@@ -268,7 +268,7 @@ end
 
 You can also define callbacks :before, :around and :after each step and or the `#execute` method. You can also register
 multiple callbacks, but probably you want to keep them to a minimum to not end up in hell. Also note that before and
-after callbacks will run even if a step was skipped through a guard clause. 
+after callbacks will run even if a step was skipped through a guard clause.
 
 #### Step callbacks
 
@@ -377,7 +377,7 @@ end
 
 You probably do not have that many different kinds of steps that you execute within your pipelines. Otherwise the whole
 concept does not make much sense. To make constructing a pipeline simpler you can therefore define configurations on
-a global level simply by providing a name for a configuration along with a configuration block. 
+a global level simply by providing a name for a configuration along with a configuration block.
 Then you then create a preconfigure pipeline by passing in the name of the configuration when creating a new pipeline.
 
 ```ruby
@@ -404,9 +404,32 @@ NxtPipeline.new(configuration: :test_processor) do |p|
 end
 ```
 
-## Topics
+### Step status and meta_data
+When executing your steps you can also log the status of a step by setting it in your constructors:
 
-- Allow defaults for global constructors
+```ruby
+pipeline = NxtPipeline.new do |pipeline|
+  pipeline.constructor(:step, default: true) do |acc, step|
+    result = step.proc.call(acc)
+    step.status = result.present? # Set the status here
+    step.meta_data = 'additional info' # or some meta data
+    acc
+  end
+
+  pipeline.step :first_step do |acc, step|
+    step.status = 'it worked'
+    step.meta_data = { extra: 'info' }
+    acc
+  end
+
+  pipeline.step :second, proc: ->(acc) { acc }
+end
+
+pipeline.logger.log # => { "first_step" => 'it worked', "second" => true } 
+pipeline.steps.map(&:meta_data) # => [{:extra=>"info"}, "additional info"]
+```
+
+## Topics
 
 ## Development
 
