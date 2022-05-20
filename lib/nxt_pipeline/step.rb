@@ -116,6 +116,8 @@ module NxtPipeline
     end
 
     def set_status
+      return if status.present? # We do not set it if the constructor did already
+
       self.status = result.present? ? :success : :skipped
     end
 
