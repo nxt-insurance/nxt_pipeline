@@ -155,7 +155,7 @@ module NxtPipeline
           self.result = call_step(step, changes)
         rescue StandardError => error
           decorate_error_with_details(error, changes, step, logger)
-          handle_error_of_step(error)
+          handle_error_of_step(step, error)
           result
         end
       end
@@ -172,7 +172,7 @@ module NxtPipeline
 
       raise unless callback
 
-      callback.call(current_arg, current_step, error)
+      callback.call(error, current_arg, current_step)
     end
 
     def on_errors(*errors, halt_on_error: true, &callback)
@@ -265,14 +265,14 @@ module NxtPipeline
       steps << Step.new(argument, constructor, steps.count, self, callbacks, **opts)
     end
 
-    def handle_error_of_step(error)
+    def handle_error_of_step(step, error)
       error_callback = find_error_callback(error)
       raise error unless error_callback.present? && error_callback.continue_after_error?
 
-      log_step(current_step)
+      log_step(step)
       raise error unless error_callback.present?
 
-      error_callback.call(current_arg, current_step, error)
+      error_callback.call(error, current_arg, step)
     end
 
     def default_constructor_name

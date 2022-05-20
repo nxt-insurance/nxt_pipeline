@@ -6,6 +6,7 @@
 - Change step DSL: Introduce constructor option to specify the constructor to use for a step
 - Introduce Configurations
 - Expose step.status and step.meta_data accessors to set status and meta_data of steps in constructors
+- Change arguments of error callbacks to be error, acc, step instead of acc, step, error and only pass by arity of callback
 
 ## nxt_pipeline 1.0.0 (24.11.2020)
 

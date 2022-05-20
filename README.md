@@ -239,26 +239,27 @@ end
 
 ### Error callbacks
 
-Apart from defining constructors and steps you can also define error callbacks.
+Apart from defining constructors and steps you can also define error callbacks. Error callbacks can accept up to  
+three arguments: `error, acc, step`.
 
 ```ruby
 NxtPipeline.new do |p|
   p.step # ... 
 
-  p.on_error MyCustomError do |acc, step, error|
+  p.on_error MyCustomError do |error|
     # First matching error callback will be executed!
   end
 
-  p.on_errors ArgumentError, KeyError do |acc, step, error|
+  p.on_errors ArgumentError, KeyError do |error, acc|
     # First matching error callback will be executed!
   end
 
-  p.on_errors YetAnotherError, halt_on_error: false do |acc, step, error|
+  p.on_errors YetAnotherError, halt_on_error: false do |error, acc, step|
     # After executing the callback the pipeline will not halt but continue to
     # execute the next steps.
   end
 
-  p.on_errors do |acc, step, error|
+  p.on_errors do |error, acc, step|
     # This will match all errors inheriting from StandardError
   end
 end

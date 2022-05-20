@@ -69,11 +69,11 @@ RSpec.describe NxtPipeline::Pipeline do
         pipeline.step NilService, to_s: 'This step was skipped', constructor: ->(_, step) { step.argument.call }
         pipeline.step ErrorRaiser, error_class: ArgumentError, constructor: :error
 
-        pipeline.on_error ArgumentError do |opts, step, error|
-          "Step #{step} was called with #{opts} and failed with #{error.class}"
+        pipeline.on_error ArgumentError do |error, acc, step|
+          "Step #{step} was called with #{acc} and failed with #{error.class}"
         end
 
-        pipeline.on_error do |step, opts, error|
+        pipeline.on_error do |error, acc, step|
           raise error
         end
       end
@@ -174,7 +174,7 @@ RSpec.describe NxtPipeline::Pipeline do
             'other_custom_error callback fired'
           end
 
-          pipeline.on_error do |step, arg, error|
+          pipeline.on_error do |error, acc, step|
             raise error
           end
         end
@@ -196,11 +196,11 @@ RSpec.describe NxtPipeline::Pipeline do
 
           pipeline.step :error_test, raisor: -> (error) { raise error }
 
-          pipeline.on_errors CustomError, OtherCustomError do |opts, step, error|
+          pipeline.on_errors CustomError, OtherCustomError do |error, acc, step|
             'common callback fired'
           end
 
-          pipeline.on_error do |opts, step, error|
+          pipeline.on_error do |error, acc, step|
             raise error
           end
         end

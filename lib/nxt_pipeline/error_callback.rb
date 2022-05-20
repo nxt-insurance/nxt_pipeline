@@ -20,8 +20,11 @@ module NxtPipeline
       (error.class.ancestors & errors).any?
     end
 
-    def call(step, arg, error)
-      callback.call(step, arg, error)
+    def call(error, acc, step)
+      args = [error, acc, step]
+      args = args.take(callback.arity) unless callback.arity.negative?
+
+      callback.call(*args)
     end
   end
 end
