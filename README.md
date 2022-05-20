@@ -165,7 +165,7 @@ pipeline.step SpecialService, constructor: ->(step, arg:) { step.argument.call(a
 pipeline.step MyOtherServiceClass
 # Define a step name
 pipeline.step MyOtherServiceClass, to_s: 'First Step'
-# Or simply execute a (named) block
+# Or simply execute a (named) block - NO NEED TO DEFINE A CONSTRUCTOR HERE  
 pipeline.step :step_name_for_better_log do |acc, step|
   # ...
 end
@@ -413,7 +413,7 @@ end
 # ...
 
 # Later create a pipeline with a previously defined configuration
-NxtPipeline.new(:test_processor) do |p|
+NxtPipeline.new(configuration: :test_processor) do |p|
   p.step ->(arg) { arg + 'first ' }, constructor: :processor
   p.step ->(arg) { arg + 'second ' }, constructor: :processor
   p.step ->(arg) { arg + 'third' }, constructor: :processor

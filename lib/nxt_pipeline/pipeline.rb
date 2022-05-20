@@ -1,10 +1,10 @@
 module NxtPipeline
   class Pipeline
-    def self.call(acc, configuration = nil, resolvers: [], &block)
-      new(configuration, resolvers: resolvers, &block).call(acc)
+    def self.call(acc, configuration: nil, resolvers: [], &block)
+      new(configuration: configuration, resolvers: resolvers, &block).call(acc)
     end
 
-    def initialize(configuration = nil, resolvers: [], &block)
+    def initialize(configuration: nil, resolvers: [], &block)
       @steps = []
       @error_callbacks = []
       @logger = Logger.new

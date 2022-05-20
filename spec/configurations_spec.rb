@@ -6,7 +6,7 @@ RSpec.describe NxtPipeline do
   end
 
   subject do
-    NxtPipeline.new(:test_processor) do |p|
+    NxtPipeline.new(configuration: :test_processor) do |p|
       p.step ->(acc) { acc + 'first ' }, constructor: :processor
       p.step ->(acc) { acc + 'second ' }, constructor: :processor
       p.step ->(acc) { acc + 'third' }, constructor: :processor
