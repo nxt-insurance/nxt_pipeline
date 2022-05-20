@@ -23,16 +23,27 @@ module NxtPipeline
     end
   end
 
-  def constructor(name, &block)
+  def constructor(name, default: false, &block)
     @constructors ||= {}
 
     if block_given?
       raise ArgumentError, "Constructor already defined for #{name}" if @constructors[name].present?
+
+      default_constructor_name(name) if default
       @constructors[name] = block
     else
       @constructors.fetch(name)
     end
   end
 
-  module_function :configuration, :constructor
+  def default_constructor_name(name = nil)
+    if name.present?
+      raise ArgumentError, "Default constructor #{@default_constructor_name} defined already" if @default_constructor_name.present?
+      @default_constructor_name = name
+    else
+      @default_constructor_name
+    end
+  end
+
+  module_function :configuration, :constructor, :default_constructor_name
 end

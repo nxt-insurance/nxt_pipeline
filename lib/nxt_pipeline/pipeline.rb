@@ -218,9 +218,8 @@ module NxtPipeline
     end
 
     attr_reader :error_callbacks, :constructors, :constructor_resolvers
-    attr_accessor :current_step,
-      :current_arg,
-      :default_constructor_name
+    attr_writer :default_constructor_name
+    attr_accessor :current_step, :current_arg
 
     def default_constructor
       return unless default_constructor_name
@@ -278,6 +277,10 @@ module NxtPipeline
       raise error unless error_callback.present?
 
       error_callback.call(current_arg, current_step, error)
+    end
+
+    def default_constructor_name
+      @default_constructor_name || ::NxtPipeline.default_constructor_name
     end
   end
 end
