@@ -52,7 +52,7 @@ module NxtPipeline
     end
 
     # Overwrite reader to also define steps
-    def steps(steps = [], &block)
+    def steps(steps = [])
       return @steps unless steps.any?
 
       steps.each do |args|
