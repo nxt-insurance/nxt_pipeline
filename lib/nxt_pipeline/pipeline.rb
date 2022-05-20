@@ -97,7 +97,6 @@ module NxtPipeline
       if constructor.present?
         # p.step Service, constructor: ->(step, **changes) { ... }
         if constructor.respond_to?(:call)
-          # resolved_constructor = Constructor.new(:block, **opts, &constructor)
           resolved_constructor = constructor
         else
           # p.step Service, constructor: :service
@@ -107,7 +106,6 @@ module NxtPipeline
         end
       elsif block_given?
         # p.step :inline do ... end
-        # resolved_constructor = Constructor.new(:block, **opts, &block)
         resolved_constructor = block
       else
         # If no constructor was given try to resolve one
@@ -119,7 +117,6 @@ module NxtPipeline
 
         # resolved constructor is a proc
         if constructor_from_resolvers.is_a?(Proc)
-          # resolved_constructor = Constructor.new(:proc, **opts, &constructor_from_resolvers)
           resolved_constructor = constructor_from_resolvers
         elsif constructor_from_resolvers.present?
           resolved_constructor = constructors[constructor_from_resolvers]
@@ -133,7 +130,6 @@ module NxtPipeline
         unless resolved_constructor.present?
           if argument.is_a?(NxtPipeline::Pipeline)
             pipeline_constructor = ->(changes) { argument.call(changes) }
-            # resolved_constructor = Constructor.new(:pipeline, **opts, &pipeline_constructor)
             resolved_constructor = pipeline_constructor
           # last chance: default constructor
           elsif default_constructor.present?
