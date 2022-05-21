@@ -149,6 +149,30 @@ NxtPipeline.new('aki') do |p|
 end
 ```
 
+Constructor Hierarchy
+
+In order to execute a specific step the pipeline firstly checks whether a constructor was specified for a step: 
+`pipeline.step MyServiceClass, constructor: :service`. If this is not the case it checks whether there is a resolver 
+registered that applies. If that's not the case the pipeline checks if there is a constructor registered for the 
+argument that was passed in. This means if you register constructors directly for the arguments you pass in you don't
+have to specify this constructor option. Therefore the following would work without the need to provide a constructor 
+for the steps.
+
+```ruby
+NxtPipeline.new('aki') do |p|
+  p.constructor(:service) do |acc, step|
+    step.service_class.new(**acc).call
+  end
+
+  p.step :service, service_class: MyServiceClass
+  p.step :service, service_class: MyOtherServiceClass
+  # ...
+end
+```
+
+Lastly if no constructor could be resolved directly from the step argument, the pipelines falls back to the locally
+and then to the globally defined default constructors.
+
 ### Defining steps
 
 Once your pipeline knows how to execute your steps you can add those. The `pipeline.step` method expects at least one
