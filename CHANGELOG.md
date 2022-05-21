@@ -1,6 +1,7 @@
 ## nxt_pipeline 2.0.0 (10.05.2022)
 
 - Rename `Pipeline.execute` to `Pipeline.call`
+- Pipeline#call accepts any argument instead of just key word arguments or hashes 
 - Introduce constructor resolvers
 - Expose :new and :call directly on NxtPipeline instead of only through NxtPipeline::Pipeline class
 - Change step DSL: Introduce constructor option to specify the constructor to use for a step

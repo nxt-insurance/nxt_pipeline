@@ -4,14 +4,14 @@
 
 NxtPipeline is an orchestration framework for your service objects or function objects, how I like to call them.
 Service objects are a very wide spread way of organizing code in the Ruby and Rails communities. Since it's little classes
-doing one thing you can think of them as function objects and thus often share a common interface in a project. There
-are also many opinionated frameworks out there that normalize the usage of service objects and provide a specific way
-of writing service objects but also allow to orchestrate (reduce) service objects.
+doing one thing you can think of them as function objects and thus they often share a common interface in a project. 
+There are also many frameworks out there that normalize the usage of service objects and provide a specific way
+of writing service objects and often also allow to orchestrate (reduce) these service objects.
 Compare [light-service](https://github.com/adomokos/light-service) for instance.
 
 The idea of NxtPipeline was to build a flexible orchestration framework for service objects without them having to conform
 to a specific interface. Instead NxtPipeline expects you to specify how to execute different kinds of service objects
-through so called constructors and thereby does not dictate on you how to write service objects. Nevertheless this still
+through so called constructors and thereby does not dictate you how to write your service objects. Nevertheless this still
 mostly makes sense if your service objects share common interfaces too keep the necessary configuration to a minimum.
 
 ## Installation
@@ -34,7 +34,9 @@ Or install it yourself as:
 
 ### Example
 
-Orchestrating validator service objects with NxtPipeline.
+Let's look at an example. Here validator service objects are orchestrated with NxtPipeline to build a validation 
+pipeline. We inject the accumulator `{ value: 'aki', errors: [] }` that is then passed through all validation steps. 
+If an validator returns an error it's added to the array of errors of the accumulator to collect all errors of all steps.
 
 ```ruby
 class Validator
@@ -97,7 +99,7 @@ class Uniqueness < Validator
   end
 end
 
-result = NxtPipeline.call('aki') do |p|
+result = NxtPipeline.call({ value: 'aki', errors: [] }) do |p|
   p.constructor(:validator, default: true) do |acc, step|
     validator = step.argument.new(acc.fetch(:value), **step.options)
     validator.call
@@ -135,7 +137,7 @@ end
 Or define a constructor only locally for a specific pipeline.
 
 ```ruby
-NxtPipeline.new('aki') do |p|
+NxtPipeline.new({ value: 'aki', errors: [] }) do |p|
   p.constructor(:validator, default: true) do |acc, step|
     validator = step.argument.new(acc.fetch(:value), **step.options)
     validator.call
@@ -159,9 +161,9 @@ have to specify this constructor option. Therefore the following would work with
 for the steps.
 
 ```ruby
-NxtPipeline.new('aki') do |p|
+NxtPipeline.new({}) do |p|
   p.constructor(:service) do |acc, step|
-    step.service_class.new(**acc).call
+    step.service_class.new(acc).call
   end
 
   p.step :service, service_class: MyServiceClass
@@ -430,7 +432,8 @@ end
 ```
 
 ### Step status and meta_data
-When executing your steps you can also log the status of a step by setting it in your constructors:
+When executing your steps you can also log the status of a step by setting it in your constructors or callbacks in 
+which you have access to the steps.
 
 ```ruby
 pipeline = NxtPipeline.new do |pipeline|
