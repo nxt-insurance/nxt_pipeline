@@ -12,7 +12,7 @@ Compare [light-service](https://github.com/adomokos/light-service) for instance.
 The idea of NxtPipeline was to build a flexible orchestration framework for service objects without them having to conform
 to a specific interface. Instead NxtPipeline expects you to specify how to execute different kinds of service objects
 through so called constructors and thereby does not dictate you how to write your service objects. Nevertheless this still
-mostly makes sense if your service objects share common interfaces too keep the necessary configuration to a minimum.
+mostly makes sense if your service objects share common interfaces to keep the necessary configuration to a minimum.
 
 ## Installation
 
