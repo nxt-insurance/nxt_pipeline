@@ -114,7 +114,7 @@ result = NxtPipeline.call({ value: 'aki', errors: [] }) do |p|
   p.step Uniqueness, options: { scope: ['andy', 'aki', 'lütfi', 'rapha'] }
 end
 
-result # => { value: 'aki', errors: ['Value size must be greater 3'] } 
+result # => { value: 'aki', errors: ['Value size must be greater than 3'] } 
 ```
 
 ### Constructors
