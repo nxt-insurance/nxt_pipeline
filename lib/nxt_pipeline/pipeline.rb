@@ -246,9 +246,6 @@ module NxtPipeline
       self.current_step = nil
     end
 
-    # def default_constructor_resolver
-    #   [->(argument, _) { argument }]
-    # end
 
     def decorate_error_with_details(error, change_set, step, logger)
       error.define_singleton_method :details do
