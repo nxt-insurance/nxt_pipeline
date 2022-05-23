@@ -411,12 +411,12 @@ Then you then create a preconfigure pipeline by passing in the name of the confi
 # Define configurations in your initializer or somewhere upfront 
 NxtPipeline.configuration(:test_processor) do |pipeline|
   pipeline.constructor(:processor) do |arg, step|
-    { arg: step.argument.call(step, arg: arg) }
+    { arg: step.argument.call(arg: arg) }
   end
 end
 
 NxtPipeline.configure(:validator) do |pipeline|
-  pipeline.constructor(:validator) do |step, arg:|
+  pipeline.constructor(:validator) do |arg, step|
     # ..
   end
 end
