@@ -67,7 +67,7 @@ class MinSize < Validator
 
   def call
     return if value.size >= size
-    self.error = "Value size must be greater #{size-1}"
+    self.error = "Value size must be greater than #{size-1}"
   end
 end
 
