@@ -408,7 +408,7 @@ a global level simply by providing a name for a configuration along with a confi
 Then you then create a preconfigure pipeline by passing in the name of the configuration when creating a new pipeline.
 
 ```ruby
-# Define configurations nn your initializer or somewhere upfront 
+# Define configurations in your initializer or somewhere upfront 
 NxtPipeline.configuration(:test_processor) do |pipeline|
   pipeline.constructor(:processor) do |arg, step|
     { arg: step.argument.call(step, arg: arg) }
