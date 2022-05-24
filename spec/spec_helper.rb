@@ -2,6 +2,8 @@ require "bundler/setup"
 require "nxt_pipeline"
 require "pry"
 
+Dir["./spec/support/**/*.rb"].each { |f| require f  }
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
@@ -11,5 +13,10 @@ RSpec.configure do |config|
 
   config.expect_with :rspec do |c|
     c.syntax = :expect
+  end
+
+  config.around(:each) do |example|
+    NxtPipeline.instance_variable_set('@constructors', nil)
+    example.run
   end
 end

@@ -1,26 +1,29 @@
 module NxtPipeline
   class Step
+    RESERVED_OPTION_KEYS  = %i[to_s unless if]
+
     def initialize(argument, constructor, index, pipeline, callbacks, **opts)
-      define_attr_readers(opts)
+      @opts = opts.symbolize_keys
 
       @pipeline = pipeline
       @callbacks = callbacks
       @argument = argument
       @index = index
-      @opts = opts
       @constructor = constructor
-      @to_s = "#{opts.merge(argument: argument)}"
+      @to_s = opts.fetch(:to_s) { argument }
       @options_mapper = opts[:map_options]
 
       @status = nil
       @result = nil
       @error = nil
       @mapped_options = nil
+      @meta_data = nil
+
+      define_option_readers
     end
 
     attr_reader :argument,
       :result,
-      :status,
       :execution_started_at,
       :execution_finished_at,
       :execution_duration,
@@ -29,25 +32,23 @@ module NxtPipeline
       :index,
       :mapped_options
 
-    attr_accessor :to_s
+    attr_writer :to_s
+    attr_accessor :meta_data, :status
 
-    alias_method :name=, :to_s=
-    alias_method :name, :to_s
-
-    def execute(**change_set)
+    def call(acc)
       track_execution_time do
-        set_mapped_options(change_set)
-        guard_args = [change_set, self]
+        set_mapped_options(acc)
+        guard_args = [acc, self]
 
-        callbacks.run(:before, :step, change_set)
+        callbacks.run(:before, :step, acc)
 
         if evaluate_unless_guard(guard_args) && evaluate_if_guard(guard_args)
-          callbacks.around(:step, change_set) do
-            set_result(change_set)
+          callbacks.around(:step, acc) do
+            set_result(acc)
           end
         end
 
-        callbacks.run(:after, :step, change_set)
+        callbacks.run(:after, :step, acc)
 
         set_status
         result
@@ -58,15 +59,19 @@ module NxtPipeline
       raise
     end
 
-    def set_mapped_options(change_set)
+    def set_mapped_options(acc)
       mapper = options_mapper || default_options_mapper
-      mapper_args = [change_set, self].take(mapper.arity)
+      mapper_args = [acc, self].take(mapper.arity)
       self.mapped_options = mapper.call(*mapper_args)
+    end
+
+    def to_s
+      @to_s.to_s
     end
 
     private
 
-    attr_writer :result, :status, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
+    attr_writer :result, :error, :mapped_options, :execution_started_at, :execution_finished_at, :execution_duration
     attr_reader :constructor, :options_mapper, :pipeline, :callbacks
 
     def evaluate_if_guard(args)
@@ -77,19 +82,15 @@ module NxtPipeline
       !execute_callable(unless_guard, args)
     end
 
-    def set_result(change_set)
-      args = [self, change_set]
+    def set_result(acc)
+      args = [acc, self]
       self.result = execute_callable(constructor, args)
     end
 
     def execute_callable(callable, args)
-      args =  args.take(callable.arity)
+      args = args.take(callable.arity) unless callable.arity.negative?
 
-      if args.last.is_a?(Hash)
-        callable.call(*args.take(args.length - 1), **args.last)
-      else
-        callable.call(*args)
-      end
+      callable.call(*args)
     end
 
     def if_guard
@@ -104,8 +105,10 @@ module NxtPipeline
       -> { result }
     end
 
-    def define_attr_readers(opts)
-      opts.each do |key, value|
+    def define_option_readers
+      raise ArgumentError, "#{invalid_option_keys} are not allowed as options" if invalid_option_keys.any?
+
+      options_without_reserved_options.each do |key, value|
         define_singleton_method key.to_s do
           value
         end
@@ -113,6 +116,8 @@ module NxtPipeline
     end
 
     def set_status
+      return if status.present? # We do not set it if the constructor did already
+
       self.status = result.present? ? :success : :skipped
     end
 
@@ -139,6 +144,18 @@ module NxtPipeline
     def default_options_mapper
       # returns an empty hash
       ->(_) { {} }
+    end
+
+    def options_without_reserved_options
+      opts.except(*reserved_option_keys)
+    end
+
+    def reserved_option_keys
+      @reserved_option_keys ||= methods + RESERVED_OPTION_KEYS
+    end
+
+    def invalid_option_keys
+      opts.except(*RESERVED_OPTION_KEYS).keys & methods
     end
   end
 end

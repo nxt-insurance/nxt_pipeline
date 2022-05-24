@@ -1,3 +1,14 @@
+## nxt_pipeline 2.0.0 (10.05.2022)
+
+- Rename `Pipeline.execute` to `Pipeline.call`
+- Pipeline#call accepts any argument instead of just key word arguments or hashes 
+- Introduce constructor resolvers
+- Expose :new and :call directly on NxtPipeline instead of only through NxtPipeline::Pipeline class
+- Change step DSL: Introduce constructor option to specify the constructor to use for a step
+- Introduce Configurations
+- Expose step.status and step.meta_data accessors to set status and meta_data of steps in constructors
+- Change arguments of error callbacks to be error, acc, step instead of acc, step, error and only pass by arity of callback
+
 ## nxt_pipeline 1.0.0 (24.11.2020)
 
 Replace after and before execute hooks with proper callbacks.
