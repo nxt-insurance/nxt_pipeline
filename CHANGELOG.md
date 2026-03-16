@@ -1,3 +1,14 @@
+## nxt_pipeline 2.1.0 (16.03.2026)
+
+- Migrate CI from CircleCI/Travis to GitHub Actions (matrix: Ruby 3.3, 3.4, 4.0)
+- Add `required_ruby_version >= 3.3` to gemspec
+- Update bundler 2.1.4 → 4.0.8, replace pry-byebug with pry, drop guard-rspec
+- Remove rspec_junit_formatter (CircleCI-only dependency)
+- Replace `OpenStruct` with `Data.define` in error details (removed from Ruby 4.0 stdlib)
+- Fix Ruby 4.0 strict kwargs separation in `Step#execute_callable`
+- Make `Pipeline#step` argument optional (fixes kwargs-only calls under Ruby 4.0)
+- Rename default branch master → main
+
 ## nxt_pipeline 2.0.0 (10.05.2022)
 
 - Rename `Pipeline.execute` to `Pipeline.call`
