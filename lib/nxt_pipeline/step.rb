@@ -1,6 +1,6 @@
 module NxtPipeline
   class Step
-    RESERVED_OPTION_KEYS  = %i[to_s unless if]
+    RESERVED_OPTION_KEYS = %i[to_s unless if]
 
     def initialize(argument, constructor, index, pipeline, callbacks, **opts)
       @opts = opts.symbolize_keys
@@ -23,14 +23,14 @@ module NxtPipeline
     end
 
     attr_reader :argument,
-      :result,
-      :execution_started_at,
-      :execution_finished_at,
-      :execution_duration,
-      :error,
-      :opts,
-      :index,
-      :mapped_options
+                :result,
+                :execution_started_at,
+                :execution_finished_at,
+                :execution_duration,
+                :error,
+                :opts,
+                :index,
+                :mapped_options
 
     attr_writer :to_s
     attr_accessor :meta_data, :status
@@ -88,9 +88,16 @@ module NxtPipeline
     end
 
     def execute_callable(callable, args)
-      args = args.take(callable.arity) unless callable.arity.negative?
+      params = callable.parameters
+      has_keywords = params.any? { |type, _| %i[key keyreq].include?(type) }
+      has_positional = params.any? { |type, _| %i[req opt].include?(type) }
 
-      callable.call(*args)
+      if has_keywords && !has_positional && args.first.is_a?(Hash)
+        callable.call(**args.first)
+      else
+        args = args.take(callable.arity) unless callable.arity.negative?
+        callable.call(*args)
+      end
     end
 
     def if_guard
